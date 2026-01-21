@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1768792015235,
+      "tag": "0000_melted_living_tribunal",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1768811062183,
+      "tag": "0001_big_centennial",
+      "breakpoints": true
+    }
+  ]
+}
