@@ -7,7 +7,7 @@ export function useAuth() {
   const { signOut } = useClerk();
   const syncUserMutation = trpc.auth.syncUser.useMutation();
   
-  // Fetch user1 from database (includes subscription info)
+  // Fetch user12 from database (includes subscription info)
   // Wait for sync to complete before fetching
   const { data: dbUser } = trpc.auth.me.useQuery(undefined, {
     enabled: isSignedIn && syncUserMutation.isSuccess,
