@@ -10,10 +10,14 @@ import Positions from "./pages/Positions";
 import BotControl from "./pages/BotControl";
 import Configuration from "./pages/Configuration";
 import Markets from "./pages/Markets";
+import LoginPage from "./pages/Login";
+import SignUpPage from "./pages/SignUp";
 
 function Router() {
   return (
     <Switch>
+      <Route path={"/login"} component={LoginPage} />
+      <Route path={"/signup"} component={SignUpPage} />
       <Route path={"/"} component={Dashboard} />
       <Route path={"/dashboard"} component={Dashboard} />
       <Route path={"/trades"} component={Trades} />

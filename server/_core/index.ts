@@ -49,7 +49,7 @@ async function startServer() {
   // Clerk authentication middleware
   app.use(clerkMiddleware());
   // OAuth callback under /api/oauth/callback
-  registerOAuthRoutes(app);
+  // registerOAuthRoutes(app);
   // tRPC API
   app.use(
     "/api/trpc",
