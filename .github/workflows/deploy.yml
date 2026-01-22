@@ -8,11 +8,11 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
-    
+
     - name: Deploy to EC2
       uses: appleboy/ssh-action@master
       with:
@@ -21,18 +21,21 @@ jobs:
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
           cd ~/polymarket-dashboard
-          
+
           # Pull latest code
-          git pull origin main || git clone https://github.com/qdibs/polymarket-dashboard.git ~/polymarket-dashboard
+          git pull origin main || git clone https://github.com/qdibs-web3/polymarket-dashboard.git ~/polymarket-dashboard
           cd ~/polymarket-dashboard
           git pull origin main
-          
+
           # Install dependencies
-          pnpm install
-          
+          npm install --legacy-peer-deps
+
+          # Fix permissions for cross-env
+          chmod +x node_modules/cross-env/dist/bin/cross-env.js
+
           # Build
-          pnpm build
-          
+          npm run build
+
           # Restart PM2
           pm2 restart polymarket-dashboard || pm2 start npm --name "polymarket-dashboard" -- start
           pm2 save
