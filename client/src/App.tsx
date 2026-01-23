@@ -12,6 +12,7 @@ import Configuration from "./pages/Configuration";
 import Markets from "./pages/Markets";
 import LoginPage from "./pages/Login";
 import SignUpPage from "./pages/SignUp";
+import Admin from "./pages/Admin";
 
 function Router() {
   return (
@@ -25,6 +26,7 @@ function Router() {
       <Route path={"/control"} component={BotControl} />
       <Route path={"/config"} component={Configuration} />
       <Route path={"/markets"} component={Markets} />
+      <Route path="/admin" component={Admin} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

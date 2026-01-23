@@ -4,8 +4,11 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
+import { adminRouter } from "./routers/admin";
 
 export const appRouter = router({
+  admin: adminRouter,  // <-- ADD THIS LINE
+  
   system: systemRouter,
   
   // Subscription management

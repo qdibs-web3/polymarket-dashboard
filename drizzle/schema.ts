@@ -19,10 +19,14 @@ export const users = mysqlTable("users", {
   subscriptionStartDate: timestamp("subscriptionStartDate"),
   subscriptionEndDate: timestamp("subscriptionEndDate"),
   
+  // User status field (NEW)
+  status: mysqlEnum("status", ["active", "banned", "suspended"]).default("active").notNull(),
+  
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
+
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
