@@ -6,6 +6,7 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import { useEffect, useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import Subscribe from "./Subscribe";
+import SubscriptionUpgrade from "@/components/SubscriptionUpgrade";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -82,23 +83,9 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Upgrade Banner for Non-Subscribers */}
+        {/* Upgrade Section for Non-Subscribers */}
         {!isSubscribed && (
-          <Card className="border-blue-500 bg-blue-500/10">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold">Upgrade to Start Trading</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Subscribe to activate the bot and start automated trading on Polymarket
-                  </p>
-                </div>
-                <Button size="lg" onClick={() => setShowSubscribeModal(true)}>
-                  View Plans
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <SubscriptionUpgrade onUpgradeClick={() => setShowSubscribeModal(true)} />
         )}
 
         {/* Metrics Cards - Only show for subscribed users */}
