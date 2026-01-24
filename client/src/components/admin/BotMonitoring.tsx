@@ -50,7 +50,7 @@ export default function BotMonitoring() {
             <AlertCircle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{botStats?.errors || 0}</div>
+            <div className="text-2xl font-bold">{botStats?.errors?.length || 0}</div>
             <p className="text-xs text-muted-foreground">Last 24 hours</p>
           </CardContent>
         </Card>
@@ -69,24 +69,24 @@ export default function BotMonitoring() {
             ) : (
               botStats?.botInstances?.map((bot: any) => (
                 <div
-                  key={bot.id}
+                  key={bot.userId}
                   className="flex items-center justify-between border rounded-lg p-3"
                 >
                   <div className="flex items-center gap-3">
                     <div className="h-2 w-2 rounded-full bg-green-600 animate-pulse" />
                     <div>
                       <p className="font-medium">{bot.userName}</p>
-                      <p className="text-sm text-muted-foreground">{bot.userEmail}</p>
+                      <p className="text-sm text-muted-foreground">User ID: {bot.userId}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <p className="text-sm font-medium">{bot.tradesCount} trades</p>
+                      <p className="text-sm font-medium">{bot.trades} trades</p>
                       <p className="text-xs text-muted-foreground">
-                        {bot.positionsCount} positions
+                        ${bot.volume} volume
                       </p>
                     </div>
-                    <Badge variant={bot.status === "active" ? "default" : "secondary"}>
+                    <Badge variant={bot.status === "running" ? "default" : "secondary"}>
                       {bot.status}
                     </Badge>
                   </div>
@@ -105,15 +105,15 @@ export default function BotMonitoring() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {botStats?.recentErrors?.length === 0 ? (
+            {!botStats?.errors || botStats?.errors?.length === 0 ? (
               <div className="flex items-center justify-center py-8 text-muted-foreground">
                 <CheckCircle className="mr-2 h-5 w-5" />
                 <span>No errors - all systems operational</span>
               </div>
             ) : (
-              botStats?.recentErrors?.map((error: any) => (
+              botStats?.errors?.map((error: any, index: number) => (
                 <div
-                  key={error.id}
+                  key={index}
                   className="flex items-start gap-3 border rounded-lg p-3 bg-destructive/5"
                 >
                   <XCircle className="h-5 w-5 text-destructive mt-0.5" />
@@ -152,9 +152,9 @@ export default function BotMonitoring() {
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm font-medium">Average Profit per Trade</p>
+              <p className="text-sm font-medium">Total Profit</p>
               <p className="text-2xl font-bold text-green-600">
-                ${botStats?.avgProfitPerTrade || 0}
+                ${botStats?.totalProfit || 0}
               </p>
             </div>
 
@@ -164,8 +164,8 @@ export default function BotMonitoring() {
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm font-medium">Uptime</p>
-              <p className="text-2xl font-bold">{botStats?.uptime || 0}%</p>
+              <p className="text-sm font-medium">Active Bots</p>
+              <p className="text-2xl font-bold">{botStats?.activeBots || 0}</p>
             </div>
           </div>
         </CardContent>

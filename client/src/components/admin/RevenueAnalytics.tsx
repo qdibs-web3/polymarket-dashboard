@@ -49,9 +49,11 @@ export default function RevenueAnalytics() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analytics?.payingCustomers || 0}</div>
+            <div className="text-2xl font-bold">
+              {analytics?.subscriptionBreakdown?.reduce((sum: number, tier: any) => sum + tier.count, 0) || 0}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {analytics?.conversionRate || 0}% conversion rate
+              {analytics?.conversionRate?.toFixed(1) || 0}% conversion rate
             </p>
           </CardContent>
         </Card>
@@ -85,7 +87,7 @@ export default function RevenueAnalytics() {
                       <div
                         className="h-full bg-primary"
                         style={{
-                          width: `${(tier.count / (analytics?.payingCustomers || 1)) * 100}%`,
+                          width: `${tier.count > 0 ? (tier.count / Math.max(...(analytics?.subscriptionBreakdown?.map((t: any) => t.count) || [1]))) * 100 : 0}%`,
                         }}
                       />
                     </div>
@@ -93,7 +95,6 @@ export default function RevenueAnalytics() {
                 </div>
                 <div className="flex items-center gap-4">
                   <span className="text-sm text-muted-foreground">{tier.count} users</span>
-                  <span className="font-medium">${tier.revenue}/mo</span>
                 </div>
               </div>
             ))}

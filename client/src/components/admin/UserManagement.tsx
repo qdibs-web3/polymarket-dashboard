@@ -26,12 +26,12 @@ import { toast } from "sonner";
 export default function UserManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const { data: users, isLoading, refetch } = trpc.admin.getAllUsers.useQuery();
-  const updateUserMutation = trpc.admin.updateUserStatus.useMutation({
+  const updateUserMutation = trpc.admin.banUser.useMutation({
     onSuccess: () => {
       toast.success("User updated successfully");
       refetch();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`Failed to update user: ${error.message}`);
     },
   });
@@ -139,7 +139,7 @@ export default function UserManagement() {
                       {new Date(user.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      {new Date(user.lastSignedIn || user.updatedAt).toLocaleDateString()}
+                      {new Date(user.lastSignedIn).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>

@@ -26,7 +26,6 @@ import {
   type InsertBotLog,
   type InsertMarketOpportunity,
 } from "../drizzle/schema";
-import { db } from "./db";
 import { ENV } from "./_core/env";
 
 let _pool: mysql.Pool | null = null;
@@ -530,31 +529,13 @@ export async function clearAllOpportunities(userId: number): Promise<void> {
 }
 
 
-// Get all users with their subscription info
-export async function getAllUsers() {
-  return await db.select({
-    id: users.id,
-    name: users.name,
-    email: users.email,
-    role: users.role,
-    subscriptionTier: users.subscriptionTier,
-    subscriptionStatus: users.subscriptionStatus,
-    stripeCustomerId: users.stripeCustomerId,
-    createdAt: users.createdAt,
-    lastSignedIn: users.lastSignedIn,
-    status: sql<string>`COALESCE(${users.status}, 'active')`.as('status'),
-  }).from(users);
-}
 
-// Update user status (ban/unban)
-export async function updateUserStatus(userId: number, status: string) {
-  await db.update(users)
-    .set({ status: status as any })
-    .where(eq(users.id, userId));
-}
 
 // Get revenue analytics
 export async function getRevenueAnalytics() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
   const allUsers = await db.select().from(users);
   
   const activeSubscriptions = allUsers.filter(u => u.subscriptionStatus === 'active');
@@ -604,6 +585,9 @@ export async function getRevenueAnalytics() {
 
 // Get bot statistics (mock data for now)
 export async function getBotStats() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
   const allUsers = await db.select().from(users);
   const activeSubscriptions = allUsers.filter(u => u.subscriptionStatus === 'active');
   
@@ -633,6 +617,9 @@ export async function getBotStats() {
 
 // Update user status (ban/unban/suspend)
 export async function updateUserStatus(userId: number, status: "active" | "banned" | "suspended") {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
   await db.update(users)
     .set({ status })
     .where(eq(users.id, userId));
@@ -640,6 +627,9 @@ export async function updateUserStatus(userId: number, status: "active" | "banne
 
 // Update getAllUsers to include status
 export async function getAllUsers() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
   return await db.select({
     id: users.id,
     name: users.name,
@@ -657,9 +647,11 @@ export async function getAllUsers() {
 
 // Get system health
 export async function getSystemHealth() {
+  const db = await getDb();
   let dbStatus = 'operational';
   let dbResponseTime = 0;
   try {
+    if (!db) throw new Error("Database not available");
     const start = Date.now();
     await db.select().from(users).limit(1);
     dbResponseTime = Date.now() - start;
