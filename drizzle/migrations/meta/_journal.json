@@ -22,6 +22,13 @@
       "when": 1769149698556,
       "tag": "0002_condemned_doomsday",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1769303479160,
+      "tag": "0003_rainy_black_panther",
+      "breakpoints": true
     }
   ]
 }

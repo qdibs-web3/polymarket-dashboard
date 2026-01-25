@@ -8,6 +8,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { paymentRateLimit, apiRateLimit } from "../middleware/rate-limit";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -33,8 +34,10 @@ async function startServer() {
   const server = createServer(app);
   
   // Stripe webhook MUST be registered BEFORE express.json() for signature verification
+  // Apply rate limiting to webhook endpoint (10 requests per hour)
   app.post(
     '/api/stripe/webhook',
+    paymentRateLimit,
     express.raw({ type: 'application/json' }),
     async (req, res) => {
       const { handleStripeWebhook } = await import('../webhooks/stripe');
@@ -48,16 +51,20 @@ async function startServer() {
   
   // Clerk authentication middleware
   app.use(clerkMiddleware());
+  
   // OAuth callback under /api/oauth/callback
   // registerOAuthRoutes(app);
-  // tRPC API
+  
+  // tRPC API with rate limiting (100 requests per 15 minutes)
   app.use(
     "/api/trpc",
+    apiRateLimit,
     createExpressMiddleware({
       router: appRouter,
       createContext,
     })
   );
+  
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);

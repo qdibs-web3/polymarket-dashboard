@@ -10,7 +10,7 @@ import SubscriptionUpgrade from "@/components/SubscriptionUpgrade";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -75,11 +75,20 @@ export default function Dashboard() {
             <h2 className="text-2xl font-bold">Dashboard</h2>
             <p className="text-sm text-muted-foreground">Real-time performance metrics and bot status</p>
           </div>
-          <div className="flex items-center gap-2">
-            <div className={`h-2 w-2 rounded-full ${metrics?.botStatus === 'running' ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`} />
-            <span className="text-sm font-medium">
-              {metrics?.botStatus === 'running' ? 'Running' : 'Stopped'}
-            </span>
+          <div className="flex items-center gap-4">
+            {isSubscribed && (
+              <Link href="/payment-history">
+                <Button variant="outline" size="sm">
+                  Payment History
+                </Button>
+              </Link>
+            )}
+            <div className="flex items-center gap-2">
+              <div className={`h-2 w-2 rounded-full ${metrics?.botStatus === 'running' ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`} />
+              <span className="text-sm font-medium">
+                {metrics?.botStatus === 'running' ? 'Running' : 'Stopped'}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -313,7 +322,7 @@ export default function Dashboard() {
 
       {/* Subscription Modal */}
       <Dialog open={showSubscribeModal} onOpenChange={setShowSubscribeModal}>
-        <DialogContent className="max-w-[90vw] w-[90vw] h-[80vh] overflow-auto">
+        <DialogContent className="max-w-[1400px] w-[1400px]">
           <Subscribe />
         </DialogContent>
       </Dialog>

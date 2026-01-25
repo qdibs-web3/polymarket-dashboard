@@ -262,3 +262,86 @@ export const marketOpportunities = mysqlTable("market_opportunities", {
 
 export type MarketOpportunity = typeof marketOpportunities.$inferSelect;
 export type InsertMarketOpportunity = typeof marketOpportunities.$inferInsert;
+
+// ============================================================================
+// ADD THESE TABLES TO YOUR drizzle/schema.ts FILE
+// ============================================================================
+// Instructions:
+// 1. Open drizzle/schema.ts
+// 2. Scroll to the bottom of the file
+// 3. Copy and paste everything below
+// 4. Run: pnpm drizzle-kit generate
+// 5. Run: pnpm drizzle-kit migrate
+// ============================================================================
+
+/**
+ * Payment audit log for tracking all payment-related events
+ */
+export const paymentAuditLog = mysqlTable("payment_audit_log", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId"),
+  
+  eventType: varchar("eventType", { length: 100 }).notNull(), // checkout_created, payment_succeeded, etc.
+  stripeEventId: varchar("stripeEventId", { length: 255 }), // Stripe event ID for idempotency
+  
+  amount: decimal("amount", { precision: 12, scale: 2 }),
+  currency: varchar("currency", { length: 3 }).default("usd"),
+  
+  subscriptionTier: varchar("subscriptionTier", { length: 50 }),
+  stripeCustomerId: varchar("stripeCustomerId", { length: 255 }),
+  stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 255 }),
+  
+  metadata: json("metadata"), // Additional event data
+  ipAddress: varchar("ipAddress", { length: 45 }), // IPv6 support
+  userAgent: text("userAgent"),
+  
+  status: mysqlEnum("status", ["pending", "success", "failed"]).default("pending").notNull(),
+  errorMessage: text("errorMessage"),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type PaymentAuditLog = typeof paymentAuditLog.$inferSelect;
+export type InsertPaymentAuditLog = typeof paymentAuditLog.$inferInsert;
+
+/**
+ * Webhook events for idempotency and debugging
+ */
+export const webhookEvents = mysqlTable("webhook_events", {
+  id: int("id").autoincrement().primaryKey(),
+  
+  stripeEventId: varchar("stripeEventId", { length: 255 }).notNull().unique(), // For idempotency
+  eventType: varchar("eventType", { length: 100 }).notNull(),
+  
+  payload: json("payload").notNull(), // Full Stripe event payload
+  
+  processed: boolean("processed").default(false).notNull(),
+  processedAt: timestamp("processedAt"),
+  
+  retryCount: int("retryCount").default(0).notNull(),
+  lastError: text("lastError"),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type WebhookEvent = typeof webhookEvents.$inferSelect;
+export type InsertWebhookEvent = typeof webhookEvents.$inferInsert;
+
+/**
+ * Rate limiting for API endpoints
+ */
+export const rateLimits = mysqlTable("rate_limits", {
+  id: int("id").autoincrement().primaryKey(),
+  
+  identifier: varchar("identifier", { length: 255 }).notNull(), // IP address or user ID
+  endpoint: varchar("endpoint", { length: 255 }).notNull(),
+  
+  requestCount: int("requestCount").default(1).notNull(),
+  windowStart: timestamp("windowStart").defaultNow().notNull(),
+  
+  blocked: boolean("blocked").default(false).notNull(),
+  blockedUntil: timestamp("blockedUntil"),
+});
+
+export type RateLimit = typeof rateLimits.$inferSelect;
+export type InsertRateLimit = typeof rateLimits.$inferInsert;

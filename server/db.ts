@@ -11,6 +11,9 @@ import {
   performanceMetrics,
   botLogs,
   marketOpportunities,
+  paymentAuditLog,
+  webhookEvents,
+  rateLimits,
   type BotConfig,
   type BotStatus,
   type Trade,
@@ -25,6 +28,9 @@ import {
   type InsertPerformanceMetrics,
   type InsertBotLog,
   type InsertMarketOpportunity,
+  type InsertPaymentAuditLog,
+  type InsertWebhookEvent,
+  type InsertRateLimit,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -694,4 +700,185 @@ export async function getSystemHealth() {
     ],
     incidents: [],
   };
+}
+
+// ==================== PAYMENT AUDIT LOG ====================
+
+export async function logPaymentAudit(log: InsertPaymentAuditLog): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot log payment audit: database not available");
+    return;
+  }
+
+  try {
+    await db.insert(paymentAuditLog).values(log);
+  } catch (error) {
+    console.error("[Database] Failed to log payment audit:", error);
+  }
+}
+
+export async function getPaymentHistory(userId: number, limit: number = 50) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db
+    .select()
+    .from(paymentAuditLog)
+    .where(eq(paymentAuditLog.userId, userId))
+    .orderBy(desc(paymentAuditLog.createdAt))
+    .limit(limit);
+}
+
+// ==================== WEBHOOK EVENTS (IDEMPOTENCY) ====================
+
+export async function createWebhookEvent(event: InsertWebhookEvent): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    await db.insert(webhookEvents).values(event);
+  } catch (error: any) {
+    // Ignore duplicate key errors (event already exists)
+    if (error.code !== 'ER_DUP_ENTRY') {
+      throw error;
+    }
+  }
+}
+
+export async function getWebhookEvent(stripeEventId: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const result = await db
+    .select()
+    .from(webhookEvents)
+    .where(eq(webhookEvents.stripeEventId, stripeEventId))
+    .limit(1);
+
+  return result[0];
+}
+
+export async function markWebhookProcessed(stripeEventId: string): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db
+    .update(webhookEvents)
+    .set({ processed: true, processedAt: new Date() })
+    .where(eq(webhookEvents.stripeEventId, stripeEventId));
+}
+
+export async function updateWebhookEventError(stripeEventId: string, errorMessage: string): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const event = await getWebhookEvent(stripeEventId);
+  const retryCount = (event?.retryCount || 0) + 1;
+
+  await db
+    .update(webhookEvents)
+    .set({ 
+      lastError: errorMessage,
+      retryCount,
+    })
+    .where(eq(webhookEvents.stripeEventId, stripeEventId));
+}
+
+// ==================== RATE LIMITING ====================
+
+export async function checkRateLimit(
+  identifier: string,
+  endpoint: string,
+  maxRequests: number = 100,
+  windowMinutes: number = 15
+): Promise<{ allowed: boolean; remaining: number }> {
+  const db = await getDb();
+  if (!db) return { allowed: true, remaining: maxRequests };
+
+  const windowStart = new Date(Date.now() - windowMinutes * 60 * 1000);
+
+  // Get or create rate limit record
+  const existing = await db
+    .select()
+    .from(rateLimits)
+    .where(
+      and(
+        eq(rateLimits.identifier, identifier),
+        eq(rateLimits.endpoint, endpoint),
+        gte(rateLimits.windowStart, windowStart)
+      )
+    )
+    .limit(1);
+
+  if (existing.length === 0) {
+    // Create new rate limit record
+    await db.insert(rateLimits).values({
+      identifier,
+      endpoint,
+      requestCount: 1,
+      windowStart: new Date(),
+    });
+    return { allowed: true, remaining: maxRequests - 1 };
+  }
+
+  const record = existing[0];
+
+  // Check if blocked
+  if (record.blocked && record.blockedUntil && record.blockedUntil > new Date()) {
+    return { allowed: false, remaining: 0 };
+  }
+
+  // Check if limit exceeded
+  if (record.requestCount >= maxRequests) {
+    // Block for the remainder of the window
+    await db
+      .update(rateLimits)
+      .set({
+        blocked: true,
+        blockedUntil: new Date(Date.now() + windowMinutes * 60 * 1000),
+      })
+      .where(eq(rateLimits.id, record.id));
+    
+    return { allowed: false, remaining: 0 };
+  }
+
+  // Increment request count
+  await db
+    .update(rateLimits)
+    .set({
+      requestCount: record.requestCount + 1,
+    })
+    .where(eq(rateLimits.id, record.id));
+
+  return { allowed: true, remaining: maxRequests - record.requestCount - 1 };
+}
+
+export async function resetRateLimit(identifier: string, endpoint: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  await db
+    .delete(rateLimits)
+    .where(
+      and(
+        eq(rateLimits.identifier, identifier),
+        eq(rateLimits.endpoint, endpoint)
+      )
+    );
+}
+
+// ==================== USER HELPERS ====================
+
+export async function getUserById(userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  return result[0];
 }

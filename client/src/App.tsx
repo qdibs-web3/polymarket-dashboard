@@ -13,6 +13,7 @@ import Markets from "./pages/Markets";
 import LoginPage from "./pages/Login";
 import SignUpPage from "./pages/SignUp";
 import Admin from "./pages/Admin";
+import PaymentHistory from "@/pages/PaymentHistory";
 
 function Router() {
   return (
@@ -27,6 +28,7 @@ function Router() {
       <Route path={"/config"} component={Configuration} />
       <Route path={"/markets"} component={Markets} />
       <Route path="/admin" component={Admin} />
+      <Route path="/payment-history" component={PaymentHistory} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

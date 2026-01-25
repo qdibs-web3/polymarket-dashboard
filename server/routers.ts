@@ -5,10 +5,11 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
 import { adminRouter } from "./routers/admin";
+import { paymentRouter } from "./routers/payment";
 
 export const appRouter = router({
   admin: adminRouter,  // <-- ADD THIS LINE
-  
+  payment: paymentRouter,
   system: systemRouter,
   
   // Subscription management
