@@ -11,6 +11,7 @@ import { useEffect } from "react";
 export default function BotControl() {
   const { data: status, refetch: refetchStatus } = trpc.bot.getStatus.useQuery();
   const { data: logs, refetch: refetchLogs } = trpc.bot.getLogs.useQuery({ limit: 100 });
+  const { data: config } = trpc.config.get.useQuery(); 
   
   const startBot = trpc.bot.start.useMutation({
     onSuccess: () => {
@@ -118,11 +119,32 @@ export default function BotControl() {
                 )}
               </div>
 
+              {(!config?.polymarketPrivateKey || !config?.polymarketFunderAddress) && (
+                <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg mb-3">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-medium text-yellow-600">Credentials Required</div>
+                      <div className="text-sm text-yellow-600/80 mt-1">
+                        Please configure your Polymarket credentials in the Configuration page before starting the bot.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-2 pt-2">
                 <Button
-                  onClick={() => startBot.mutate()}
-                  disabled={isRunning || startBot.isPending}
+                  onClick={() => {
+                    if (!config?.polymarketPrivateKey || !config?.polymarketFunderAddress) {
+                      toast.error("Please configure Polymarket credentials first in Configuration page");
+                      return;
+                    }
+                    startBot.mutate();
+                  }}
+                  disabled={isRunning || startBot.isPending || !config?.polymarketPrivateKey || !config?.polymarketFunderAddress}
                   className="flex-1"
+                  title={!config?.polymarketPrivateKey || !config?.polymarketFunderAddress ? "Configure credentials first" : ""}
                 >
                   <Play className="h-4 w-4 mr-2" />
                   Start Bot

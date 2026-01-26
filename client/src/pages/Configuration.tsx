@@ -36,6 +36,8 @@ export default function Configuration() {
     minVolume: 5000,
     minQualityScore: 60,
     runIntervalSeconds: 60,
+    polymarketPrivateKey: '', 
+    polymarketFunderAddress: '', 
   });
 
   useEffect(() => {
@@ -54,6 +56,8 @@ export default function Configuration() {
         minVolume: config.minVolume ?? 5000,
         minQualityScore: config.minQualityScore ?? 60,
         runIntervalSeconds: config.runIntervalSeconds ?? 60,
+        polymarketPrivateKey: config.polymarketPrivateKey ?? '', 
+        polymarketFunderAddress: config.polymarketFunderAddress ?? '', 
       });
     }
   }, [config]);
@@ -79,6 +83,8 @@ export default function Configuration() {
         minVolume: config.minVolume ?? 5000,
         minQualityScore: config.minQualityScore ?? 60,
         runIntervalSeconds: config.runIntervalSeconds ?? 60,
+        polymarketPrivateKey: config.polymarketPrivateKey ?? '', 
+        polymarketFunderAddress: config.polymarketFunderAddress ?? '',
       });
       toast.info("Configuration reset to saved values");
     }
@@ -349,27 +355,54 @@ export default function Configuration() {
                 <CardContent className="space-y-4">
                   <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
                     <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                      <strong>Important:</strong> API credentials are configured via environment variables for security.
-                      Update your <code className="px-1 py-0.5 bg-muted rounded">.env</code> file with:
+                      <strong>Important:</strong> Your private key is encrypted and stored securely. Never share your private key with anyone.
                     </p>
-                    <ul className="mt-2 text-sm text-muted-foreground space-y-1 ml-4">
-                      <li>• <code>POLYMARKET_PRIVATE_KEY</code> - Your wallet private key</li>
-                      <li>• <code>POLYMARKET_FUNDER_ADDRESS</code> - Your wallet address</li>
-                    </ul>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Current Status</Label>
-                    <div className="p-3 bg-muted rounded-lg">
-                      <p className="text-sm">
-                        API credentials are {config ? "configured" : "not configured"}
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="polymarketPrivateKey">Polymarket Private Key *</Label>
+                      <Input
+                        id="polymarketPrivateKey"
+                        type="password"
+                        placeholder="0x..."
+                        value={formData.polymarketPrivateKey || ''}
+                        onChange={(e) => setFormData({ ...formData, polymarketPrivateKey: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Your Polymarket wallet private key (required to execute trades)
                       </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="polymarketFunderAddress">Funder Address *</Label>
+                      <Input
+                        id="polymarketFunderAddress"
+                        type="text"
+                        placeholder="0x..."
+                        value={formData.polymarketFunderAddress || ''}
+                        onChange={(e) => setFormData({ ...formData, polymarketFunderAddress: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Your Polymarket wallet address (must match the private key)
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Current Status</Label>
+                      <div className="p-3 bg-muted rounded-lg">
+                        <p className="text-sm">
+                          Credentials: {config?.polymarketPrivateKey && config?.polymarketFunderAddress ? 
+                            <span className="text-green-600 dark:text-green-400 font-medium">✓ Configured</span> : 
+                            <span className="text-red-600 dark:text-red-400 font-medium">✗ Not Configured</span>
+                          }
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
-          </Tabs>
 
           <div className="flex justify-end gap-2 mt-6">
             <Button type="button" onClick={handleReset} variant="outline">

@@ -254,6 +254,11 @@ export const appRouter = router({
         throw new Error("Bot configuration not found. Please configure the bot first.");
       }
 
+      // NEW: Check if Polymarket credentials are configured
+      if (!config.polymarketPrivateKey || !config.polymarketFunderAddress) {
+        throw new Error("Polymarket credentials not configured. Please add your private key and funder address in the Configuration page.");
+      }
+
       await db.upsertBotConfig({
         ...config,
         isActive: true,
