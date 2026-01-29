@@ -345,64 +345,65 @@ export default function Configuration() {
                 </CardContent>
               </Card>
             </TabsContent>
+	   <TabsContent value="api" className="space-y-4">
+            <Card>
+             <CardHeader>
+              <CardTitle>Polymarket API Settings</CardTitle>
+              <CardDescription>Configure your Polymarket wallet connection</CardDescription>
+             </CardHeader>
+             <CardContent className="space-y-4">
+              <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+               <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                <strong>Important:</strong> Your private key is encrypted and stored securely. Never share your private key with anyone.
+               </p>
+              </div>
 
-            <TabsContent value="api" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Polymarket API Settings</CardTitle>
-                  <CardDescription>Configure your Polymarket wallet connection</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                    <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                      <strong>Important:</strong> Your private key is encrypted and stored securely. Never share your private key with anyone.
-                    </p>
-                  </div>
+              <div className="space-y-4">
+               <div className="space-y-2">
+                <Label htmlFor="polymarketPrivateKey">Polymarket Private Key *</Label>
+                 <Input
+                  id="polymarketPrivateKey"
+                  type="password"
+                  placeholder="0x..."
+                  value={formData.polymarketPrivateKey || ''}
+                  onChange={(e) => setFormData({ ...formData, polymarketPrivateKey: e.target.value })}
+                 />
+                 <p className="text-xs text-muted-foreground">
+                  Your Polymarket wallet private key (required to execute trades)
+                 </p>
+                </div>
 
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="polymarketPrivateKey">Polymarket Private Key *</Label>
-                      <Input
-                        id="polymarketPrivateKey"
-                        type="password"
-                        placeholder="0x..."
-                        value={formData.polymarketPrivateKey || ''}
-                        onChange={(e) => setFormData({ ...formData, polymarketPrivateKey: e.target.value })}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Your Polymarket wallet private key (required to execute trades)
-                      </p>
-                    </div>
+                <div className="space-y-2">
+                 <Label htmlFor="polymarketFunderAddress">Funder Address *</Label>
+                  <Input
+                   id="polymarketFunderAddress"
+                   type="text"
+                   placeholder="0x..."
+                   value={formData.polymarketFunderAddress || ''}
+                   onChange={(e) => setFormData({ ...formData, polymarketFunderAddress: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                   Your Polymarket wallet address (must match the private key)
+                  </p>
+                </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="polymarketFunderAddress">Funder Address *</Label>
-                      <Input
-                        id="polymarketFunderAddress"
-                        type="text"
-                        placeholder="0x..."
-                        value={formData.polymarketFunderAddress || ''}
-                        onChange={(e) => setFormData({ ...formData, polymarketFunderAddress: e.target.value })}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Your Polymarket wallet address (must match the private key)
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Current Status</Label>
-                      <div className="p-3 bg-muted rounded-lg">
-                        <p className="text-sm">
-                          Credentials: {config?.polymarketPrivateKey && config?.polymarketFunderAddress ? 
-                            <span className="text-green-600 dark:text-green-400 font-medium">✓ Configured</span> : 
-                            <span className="text-red-600 dark:text-red-400 font-medium">✗ Not Configured</span>
-                          }
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                <div className="space-y-2">
+                 <Label>Current Status</Label>
+                 <div className="p-3 bg-muted rounded-lg">
+                  <p className="text-sm">
+                   Credentials: {config?.polymarketPrivateKey && config?.polymarketFunderAddress ? 
+                     <span className="text-green-600 dark:text-green-400 font-medium">✓ Configured</span> : 
+                     <span className="text-red-600 dark:text-red-400 font-medium">✗ Not Configured</span>
+                   }
+                  </p>
+                 </div>
+                </div>
+               </div>
+              </CardContent>
+             </Card>
+           </TabsContent>
+	
+          </Tabs>
 
           <div className="flex justify-end gap-2 mt-6">
             <Button type="button" onClick={handleReset} variant="outline">

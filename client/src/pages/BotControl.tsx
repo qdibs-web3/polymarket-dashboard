@@ -11,7 +11,7 @@ import { useEffect } from "react";
 export default function BotControl() {
   const { data: status, refetch: refetchStatus } = trpc.bot.getStatus.useQuery();
   const { data: logs, refetch: refetchLogs } = trpc.bot.getLogs.useQuery({ limit: 100 });
-  const { data: config } = trpc.config.get.useQuery(); 
+  const { data: config } = trpc.config.get.useQuery();  // NEW: Fetch config to check credentials
   
   const startBot = trpc.bot.start.useMutation({
     onSuccess: () => {
@@ -20,7 +20,7 @@ export default function BotControl() {
       refetchLogs();
     },
     onError: (error) => {
-      toast.error(`Failed to start bot: \${error.message}`);
+      toast.error(`Failed to start bot: ${error.message}`);
     },
   });
 
@@ -31,7 +31,7 @@ export default function BotControl() {
       refetchLogs();
     },
     onError: (error) => {
-      toast.error(`Failed to stop bot: \${error.message}`);
+      toast.error(`Failed to stop bot: ${error.message}`);
     },
   });
 
@@ -44,7 +44,7 @@ export default function BotControl() {
   }, [refetchStatus, refetchLogs]);
 
   const isRunning = status?.status === 'running';
-  const isStopped = status?.status === 'stopped';
+  const isStopped = status?.status === 'stopped' || status?.status === 'error';  // UPDATED: Treat error as stopped
   const hasError = status?.errorMessage;
 
   const getLevelColor = (level: string) => {
@@ -82,7 +82,12 @@ export default function BotControl() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className={`h-3 w-3 rounded-full \${isRunning ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`} />
+                {/* UPDATED: Add red dot for error status */}
+                <div className={`h-3 w-3 rounded-full ${
+                  isRunning ? 'bg-green-500 animate-pulse' : 
+                  status?.status === 'error' ? 'bg-red-500' : 
+                  'bg-gray-500'
+                }`} />
                 <span className="text-lg font-semibold capitalize">{status?.status || 'Unknown'}</span>
               </div>
 
@@ -119,8 +124,9 @@ export default function BotControl() {
                 )}
               </div>
 
+              {/* NEW: Warning if credentials not configured */}
               {(!config?.polymarketPrivateKey || !config?.polymarketFunderAddress) && (
-                <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg mb-3">
+                <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
                   <div className="flex items-start gap-2">
                     <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5" />
                     <div>
@@ -134,6 +140,7 @@ export default function BotControl() {
               )}
 
               <div className="flex gap-2 pt-2">
+                {/* UPDATED: Add credential validation */}
                 <Button
                   onClick={() => {
                     if (!config?.polymarketPrivateKey || !config?.polymarketFunderAddress) {
@@ -204,7 +211,7 @@ export default function BotControl() {
                       <span className="text-muted-foreground text-xs whitespace-nowrap">
                         {new Date(log.timestamp).toLocaleTimeString()}
                       </span>
-                      <span className={`flex items-center gap-1 \${getLevelColor(log.level)}`}>
+                      <span className={`flex items-center gap-1 ${getLevelColor(log.level)}`}>
                         {getLevelIcon(log.level)}
                         [{log.level.toUpperCase()}]
                       </span>

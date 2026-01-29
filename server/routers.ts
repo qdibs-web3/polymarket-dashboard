@@ -6,12 +6,13 @@ import { z } from "zod";
 import * as db from "./db";
 import { adminRouter } from "./routers/admin";
 import { paymentRouter } from "./routers/payment";
+import { encrypt, decrypt } from './crypto';
 
 export const appRouter = router({
-  admin: adminRouter,  // <-- ADD THIS LINE
+  admin: adminRouter,
   payment: paymentRouter,
   system: systemRouter,
-  
+
   // Subscription management
   subscription: router({
     createCheckout: protectedProcedure
@@ -20,12 +21,12 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         const { createCheckoutSession } = await import('./stripe');
-        
+
         // Use a valid email format - Stripe requires proper email validation
         const userEmail = ctx.user.email && ctx.user.email.includes('@') && !ctx.user.email.includes('localhost')
           ? ctx.user.email
           : `user-${ctx.user.id}@polymarket-bot.com`;
-        
+
         const session = await createCheckoutSession({
           userId: ctx.user.id,
           userEmail,
@@ -248,13 +249,14 @@ export const appRouter = router({
     }),
 
     start: protectedProcedure.mutation(async ({ ctx }) => {
+      // FIXED: Get config directly from database to check actual encrypted values
       const config = await db.getBotConfig(ctx.user.id);
 
       if (!config) {
         throw new Error("Bot configuration not found. Please configure the bot first.");
       }
 
-      // NEW: Check if Polymarket credentials are configured
+      // Check if Polymarket credentials are configured (check actual database values, not masked)
       if (!config.polymarketPrivateKey || !config.polymarketFunderAddress) {
         throw new Error("Polymarket credentials not configured. Please add your private key and funder address in the Configuration page.");
       }
@@ -348,12 +350,15 @@ export const appRouter = router({
           minQualityScore: 60,
           runIntervalSeconds: 60,
           isActive: false,
+          polymarketPrivateKey: null,
+          polymarketFunderAddress: null,
         };
 
         await db.upsertBotConfig(defaultConfig);
         config = await db.getBotConfig(ctx.user.id);
       }
 
+      // Return config with masked private key for security
       return {
         ...config,
         maxPositionSize: parseFloat(config!.maxPositionSize),
@@ -363,6 +368,9 @@ export const appRouter = router({
         kellyFraction: parseFloat(config!.kellyFraction),
         arbitrageMinProfitPct: parseFloat(config!.arbitrageMinProfitPct),
         minVolume: parseFloat(config!.minVolume),
+        // For security: only return whether credentials exist, not the actual values
+        polymarketPrivateKey: config!.polymarketPrivateKey ? '********' : null,
+        polymarketFunderAddress: config!.polymarketFunderAddress,
       };
     }),
 
@@ -408,8 +416,19 @@ export const appRouter = router({
         if (input.minVolume !== undefined) updates.minVolume = input.minVolume.toString();
         if (input.minQualityScore !== undefined) updates.minQualityScore = input.minQualityScore;
         if (input.runIntervalSeconds !== undefined) updates.runIntervalSeconds = input.runIntervalSeconds;
-        if (input.polymarketPrivateKey !== undefined) updates.polymarketPrivateKey = input.polymarketPrivateKey;
-        if (input.polymarketFunderAddress !== undefined) updates.polymarketFunderAddress = input.polymarketFunderAddress;
+
+        // Encrypt private key before saving
+        if (input.polymarketPrivateKey !== undefined) {
+          // Only encrypt if it's not already the masked value
+          if (input.polymarketPrivateKey !== '********') {
+            updates.polymarketPrivateKey = encrypt(input.polymarketPrivateKey);
+          }
+          // If it's the masked value, don't update it (keep existing encrypted value)
+        }
+
+        if (input.polymarketFunderAddress !== undefined) {
+          updates.polymarketFunderAddress = input.polymarketFunderAddress;
+        }
 
         await db.upsertBotConfig(updates);
 
