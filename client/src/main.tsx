@@ -8,6 +8,7 @@ import App from "./App";
 import "./index.css";
 import { trpc } from "./lib/trpc";
 
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -15,26 +16,36 @@ const queryClient = new QueryClient({
       retry: false,
     },
   },
-} );
+}  );
+
 
 const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({
       url: "/api/trpc",
       transformer: superjson,
-    } ),
+    }  ),
   ],
 });
 
+
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
 
 if (!CLERK_PUBLISHABLE_KEY) {
   throw new Error("Missing Clerk Publishable Key");
 }
 
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
+    <ClerkProvider 
+      publishableKey={CLERK_PUBLISHABLE_KEY}
+      signInUrl="/login"
+      signUpUrl="/signup"
+      signInFallbackRedirectUrl="/"
+      signUpFallbackRedirectUrl="/"
+    >
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
           <App />
