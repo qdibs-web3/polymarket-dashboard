@@ -345,64 +345,89 @@ export default function Configuration() {
                 </CardContent>
               </Card>
             </TabsContent>
-	   <TabsContent value="api" className="space-y-4">
-            <Card>
-             <CardHeader>
-              <CardTitle>Polymarket API Settings</CardTitle>
-              <CardDescription>Configure your Polymarket wallet connection</CardDescription>
-             </CardHeader>
-             <CardContent className="space-y-4">
-              <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-               <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                <strong>Important:</strong> Your private key is encrypted and stored securely. Never share your private key with anyone.
-               </p>
-              </div>
 
-              <div className="space-y-4">
-               <div className="space-y-2">
-                <Label htmlFor="polymarketPrivateKey">Polymarket Private Key *</Label>
-                 <Input
-                  id="polymarketPrivateKey"
-                  type="password"
-                  placeholder="0x..."
-                  value={formData.polymarketPrivateKey || ''}
-                  onChange={(e) => setFormData({ ...formData, polymarketPrivateKey: e.target.value })}
-                 />
-                 <p className="text-xs text-muted-foreground">
-                  Your Polymarket wallet private key (required to execute trades)
-                 </p>
-                </div>
+            <TabsContent value="api" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Polymarket API Settings</CardTitle>
+                  <CardDescription>Configure your Polymarket wallet connection</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* How to Get Credentials Help Section */}
+                  <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg space-y-3">
+                    <h4 className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                      🔑 How to Get Your Polymarket Credentials
+                    </h4>
+                    <ol className="text-sm text-slate-700 dark:text-slate-300 space-y-2 list-decimal list-inside">
+                      <li>
+                        Go to <a href="https://polymarket.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 underline hover:text-blue-700 dark:hover:text-blue-300">polymarket.com</a> and create an account (if you don't have one )
+                      </li>
+                      <li>
+                        Complete at least one trade to deploy your proxy wallet
+                      </li>
+                      <li>
+                        Click your profile → Settings → Export Private Key
+                      </li>
+                      <li>
+                        Copy your <strong>Private Key</strong> and <strong>Wallet Address</strong>
+                      </li>
+                      <li>
+                        Paste them in the fields below
+                      </li>
+                    </ol>
+                  </div>
 
-                <div className="space-y-2">
-                 <Label htmlFor="polymarketFunderAddress">Funder Address *</Label>
-                  <Input
-                   id="polymarketFunderAddress"
-                   type="text"
-                   placeholder="0x..."
-                   value={formData.polymarketFunderAddress || ''}
-                   onChange={(e) => setFormData({ ...formData, polymarketFunderAddress: e.target.value })}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                   Your Polymarket wallet address (must match the private key)
-                  </p>
-                </div>
+                  <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                    <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                      <strong>⚠️ Security:</strong> Your private key is encrypted before storage. Never share it with anyone else. We only use it to execute trades on your behalf.
+                    </p>
+                  </div>
 
-                <div className="space-y-2">
-                 <Label>Current Status</Label>
-                 <div className="p-3 bg-muted rounded-lg">
-                  <p className="text-sm">
-                   Credentials: {config?.polymarketPrivateKey && config?.polymarketFunderAddress ? 
-                     <span className="text-green-600 dark:text-green-400 font-medium">✓ Configured</span> : 
-                     <span className="text-red-600 dark:text-red-400 font-medium">✗ Not Configured</span>
-                   }
-                  </p>
-                 </div>
-                </div>
-               </div>
-              </CardContent>
-             </Card>
-           </TabsContent>
-	
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="polymarketPrivateKey">Polymarket Private Key *</Label>
+                      <Input
+                        id="polymarketPrivateKey"
+                        type="password"
+                        placeholder="0x..."
+                        value={formData.polymarketPrivateKey || ''}
+                        onChange={(e) => setFormData({ ...formData, polymarketPrivateKey: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Your Polymarket wallet private key (required to execute trades)
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="polymarketFunderAddress">Funder Address *</Label>
+                      <Input
+                        id="polymarketFunderAddress"
+                        type="text"
+                        placeholder="0x..."
+                        value={formData.polymarketFunderAddress || ''}
+                        onChange={(e) => setFormData({ ...formData, polymarketFunderAddress: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Your Polymarket wallet address (must match the private key)
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Current Status</Label>
+                      <div className="p-3 bg-muted rounded-lg">
+                        <p className="text-sm">
+                          Credentials: {config?.polymarketPrivateKey && config?.polymarketFunderAddress ? 
+                            <span className="text-green-600 dark:text-green-400 font-medium">✓ Configured</span> : 
+                            <span className="text-red-600 dark:text-red-400 font-medium">✗ Not Configured</span>
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
           </Tabs>
 
           <div className="flex justify-end gap-2 mt-6">

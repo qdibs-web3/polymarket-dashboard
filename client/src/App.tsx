@@ -1,53 +1,55 @@
-import { Toaster } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
-import ErrorBoundary from "./components/ErrorBoundary";
-import { ThemeProvider } from "./contexts/ThemeContext";
-import Dashboard from "./pages/Dashboard";
-import Trades from "./pages/Trades";
-import Positions from "./pages/Positions";
-import BotControl from "./pages/BotControl";
-import Configuration from "./pages/Configuration";
-import Markets from "./pages/Markets";
+import { Route, Switch, useLocation } from "wouter";
+import { useAuth } from "./contexts/AuthContext";
+import { useEffect } from "react";
 import LoginPage from "./pages/Login";
-import SignUpPage from "./pages/SignUp";
-import Admin from "./pages/Admin";
-import PaymentHistory from "@/pages/PaymentHistory";
+import VerifyMagicLink from "./pages/VerifyMagicLink";
+import GoogleCallback from "./pages/GoogleCallback";
+import Dashboard from "./pages/Dashboard";
+import Configuration from "./pages/Configuration";
+import DashboardLayout from "./components/DashboardLayout";
 
-function Router() {
-  return (
-    <Switch>
-      <Route path={"/login"} component={LoginPage} />
-      <Route path={"/signup"} component={SignUpPage} />
-      <Route path={"/"} component={Dashboard} />
-      <Route path={"/dashboard"} component={Dashboard} />
-      <Route path={"/trades"} component={Trades} />
-      <Route path={"/positions"} component={Positions} />
-      <Route path={"/control"} component={BotControl} />
-      <Route path={"/config"} component={Configuration} />
-      <Route path={"/markets"} component={Markets} />
-      <Route path="/admin" component={Admin} />
-      <Route path="/payment-history" component={PaymentHistory} />
-      <Route path={"/404"} component={NotFound} />
-      <Route component={NotFound} />
-    </Switch>
-  );
+function ProtectedRoute({ component: Component, ...rest }: any) {
+  const { isAuthenticated, isLoading } = useAuth();
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      setLocation("/login");
+    }
+  }, [isAuthenticated, isLoading, setLocation]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    );
+  }
+
+  return isAuthenticated ? <Component {...rest} /> : null;
 }
 
 function App() {
   return (
-    <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="dark"
-        // switchable
-      >
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
+    <Switch>
+      <Route path="/login" component={LoginPage} />
+      <Route path="/auth/verify" component={VerifyMagicLink} />
+      <Route path="/auth/callback" component={GoogleCallback} />
+      <Route path="/">
+        <ProtectedRoute component={Dashboard} />
+      </Route>
+      <Route path="/config">
+        <ProtectedRoute component={Configuration} />
+      </Route>
+      <Route>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold mb-4">404</h1>
+            <p className="text-gray-600">Page not found</p>
+          </div>
+        </div>
+      </Route>
+    </Switch>
   );
 }
 
