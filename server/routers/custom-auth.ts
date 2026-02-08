@@ -1,140 +1,153 @@
-import { z } from 'zod';
-import { publicProcedure, protectedProcedure, router } from '../_core/trpc';
-import { TRPCError } from '@trpc/server';
-import { generateMagicLink, buildMagicLinkUrl, isMagicLinkExpired } from '../auth/magic-link';
-import { sendEmail, buildMagicLinkEmail } from '../auth/email';
-import { generateToken } from '../auth/jwt';
+import { router, publicProcedure } from "../_core/trpc";
+import { z } from "zod";
+import { createMagicLink, verifyMagicLink } from "../auth/magic-link";
+import { sendMagicLinkEmail } from "../auth/email";
+import { generateToken, generateSessionId } from "../auth/jwt";
 import {
   findUserByEmail,
   createUser,
-  saveMagicLink,
-  findMagicLink,
-  markMagicLinkAsUsed,
-  saveSession,
+  updateUserLastSignIn,
+  createSession,
   deleteSession,
-  findUserById,
-} from '../auth/db-helpers';
-
-const APP_URL = process.env.APP_URL || 'http://localhost:3000';
+} from "../auth/db-helpers";
+import { TRPCError } from "@trpc/server";
 
 export const customAuthRouter = router({
   // Send magic link to email
   sendMagicLink: publicProcedure
-    .input(z.object({
-      email: z.string( ).email(),
-    }))
+    .input(
+      z.object({
+        email: z.string().email(),
+      })
+    )
     .mutation(async ({ input }) => {
-      const { email } = input;
-      
-      // Generate magic link
-      const magicLinkData = generateMagicLink(email, APP_URL);
-      const magicLinkUrl = buildMagicLinkUrl(magicLinkData.token, APP_URL);
-      
-      // Save to database
-      await saveMagicLink(email, magicLinkData.token, magicLinkData.expiresAt);
-      
-      // Send email
-      const { html, text } = buildMagicLinkEmail(magicLinkUrl);
-      await sendEmail({
-        to: email,
-        subject: 'Sign in to Predictive Apex',
-        html,
-        text,
-      });
-      
-      return { success: true };
+      try {
+        const email = input.email.toLowerCase();
+        
+        // Create magic link token
+        const token = await createMagicLink(email);
+        
+        // Send email
+        await sendMagicLinkEmail(email, token);
+        
+        console.log(`[Auth] Magic link sent to ${email}`);
+        
+        return {
+          success: true,
+          message: "Magic link sent! Check your email.",
+        };
+      } catch (error) {
+        console.error("[Auth] Failed to send magic link:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to send magic link. Please try again.",
+        });
+      }
     }),
-  
-  // Verify magic link and return JWT token
+
+  // Verify magic link and login
   verifyMagicLink: publicProcedure
-    .input(z.object({
-      token: z.string(),
-    }))
+    .input(
+      z.object({
+        token: z.string(),
+      })
+    )
     .mutation(async ({ input }) => {
-      const { token } = input;
-      
-      // Find magic link
-      const magicLink = await findMagicLink(token);
-      
-      if (!magicLink) {
+      try {
+        // Verify the magic link token
+        const email = await verifyMagicLink(input.token);
+        
+        if (!email) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Invalid or expired magic link",
+          });
+        }
+        
+        // Find or create user
+        let user = await findUserByEmail(email);
+        
+        if (!user) {
+          // Create new user
+          user = await createUser({
+            email,
+            loginMethod: "email",
+            name: email.split('@')[0],
+            googleId: undefined,
+          });
+        } else {
+          // Update last signed in
+          await updateUserLastSignIn(user.id);
+        }
+        
+        // Create session
+        const sessionId = generateSessionId();
+        const token = generateToken(user.id, sessionId);
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+        
+        await createSession({
+          userId: user.id,
+          token,
+          expiresAt,
+        });
+        
+        console.log(`[Auth] User logged in via magic link: ${email}`);
+        
+        return {
+          success: true,
+          token,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            subscriptionTier: user.subscriptionTier,
+            subscriptionStatus: user.subscriptionStatus,
+          },
+        };
+      } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        console.error("[Auth] Failed to verify magic link:", error);
         throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'Invalid or expired magic link',
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to verify magic link",
         });
       }
-      
-      // Check if expired
-      if (isMagicLinkExpired(new Date(magicLink.expires_at))) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Magic link has expired',
-        });
-      }
-      
-      // Mark as used
-      await markMagicLinkAsUsed(token);
-      
-      // Find or create user
-      let user = await findUserByEmail(magicLink.email);
-      
-      if (!user) {
-        user = await createUser(magicLink.email);
-      }
-      
-      // Generate JWT token
-      const { token: jwtToken, sessionId } = generateToken(user.id, user.email);
-      
-      // Save session
-      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-      await saveSession(sessionId, user.id, jwtToken, expiresAt);
-      
-      return {
-        token: jwtToken,
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-        },
-      };
     }),
-  
-  // Get current user
-  me: protectedProcedure
-    .query(async ({ ctx }) => {
-      const userId = ctx.user?.userId;
-      
-      if (!userId) {
-        throw new TRPCError({
-          code: 'UNAUTHORIZED',
-          message: 'Not authenticated',
-        });
-      }
-      
-      const user = await findUserById(userId);
-      
-      if (!user) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'User not found',
-        });
-      }
-      
-      return {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-      };
-    }),
-  
+
+  // Get current user (with JWT token)
+  me: publicProcedure.query(async ({ ctx }) => {
+    // User is attached by auth middleware
+    return ctx.user || null;
+  }),
+
   // Logout
-  logout: protectedProcedure
-    .mutation(async ({ ctx }) => {
-      const sessionId = ctx.user?.sessionId;
-      
-      if (sessionId) {
-        await deleteSession(sessionId);
+  logout: publicProcedure.mutation(async ({ ctx }) => {
+    try {
+      // @ts-ignore - sessionId is attached by auth middleware
+      if (ctx.sessionId) {
+        // @ts-ignore
+        await deleteSession(ctx.sessionId);
       }
       
-      return { success: true };
-    }),
+      return {
+        success: true,
+      };
+    } catch (error) {
+      console.error("[Auth] Logout failed:", error);
+      return {
+        success: false,
+      };
+    }
+  }),
+
+  // Google OAuth callback (handled by Express route, this is just for status)
+  googleStatus: publicProcedure.query(() => {
+    return {
+      enabled: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+      clientId: process.env.GOOGLE_CLIENT_ID ? "configured" : "missing",
+    };
+  }),
 });

@@ -1,104 +1,151 @@
-import * as db from '../db';
+import { getDb } from '../db';
+import { users, sessions, magicLinks } from '../../drizzle/schema';
+import { eq } from 'drizzle-orm';
 
-// User management for custom auth
-export async function createUser(email: string, googleId?: string) {
-  const user = {
-    openId: `email_${Date.now()}`,
-    email,
-    name: email.split('@')[0],
-    googleId: googleId || null,
-    subscriptionTier: 'free' as const,
-    subscriptionStatus: 'active' as const,
-  };
+/**
+ * Database helper functions for authentication
+ */
+
+// User operations
+
+export async function testDbConnection() {
+  const db = await getDb();
+  if (!db) {
+    console.log('[TEST] Database connection failed');
+    return;
+  }
   
-  await db.upsertUser(user);
-  return await findUserByEmail(email);
+  try {
+    const result = await db.select().from(users).limit(1);
+    console.log('[TEST] Database connection works! Found users:', result.length);
+  } catch (error) {
+    console.log('[TEST] Database query failed:', error);
+  }
+}
+
+
+export async function findUserByGoogleId(googleId: string) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const result = await db.select().from(users).where(eq(users.openId, googleId)).limit(1);
+  return result[0] || null;
 }
 
 export async function findUserByEmail(email: string) {
-  const dbInstance = await db.getDb();
-  const user = await dbInstance.query.users.findFirst({
-    where: (users: any, { eq }: any) => eq(users.email, email),
-  });
-  return user;
-}
-
-export async function findUserByGoogleId(googleId: string) {
-  const dbInstance = await db.getDb();
-  const user = await dbInstance.query.users.findFirst({
-    where: (users: any, { eq }: any) => eq(users.googleId, googleId),
-  });
-  return user;
+  const db = await getDb();
+  if (!db) return null;
+  
+  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  return result[0] || null;
 }
 
 export async function findUserById(id: number) {
-  const dbInstance = await db.getDb();
-  const user = await dbInstance.query.users.findFirst({
-    where: (users: any, { eq }: any) => eq(users.id, id),
-  });
-  return user;
+  const db = await getDb();
+  if (!db) return null;
+  
+  const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  return result[0] || null;
 }
 
-// Session management
-export async function saveSession(userId: number, token: string, expiresAt: Date) {
-  const dbInstance = await db.getDb();
-  const { sessions } = await import('../../drizzle/schema');
-  const sessionId = `sess_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+export async function createUser(data: {
+  googleId?: string;
+  email: string;
+  name?: string;
+  loginMethod: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error('Database connection failed');
   
-  await dbInstance.insert(sessions).values({
-    id: sessionId,
-    userId,
-    token,
-    expiresAt,
+  const result = await db.insert(users).values({
+    openId: data.googleId || '',
+    email: data.email,
+    name: data.name || null,
+    loginMethod: data.loginMethod,
+    role: 'user',
+    subscriptionTier: 'none',
+    subscriptionStatus: 'none',
+    status: 'active',
   });
   
-  return sessionId;
+  // Get the created user
+  const insertId = Number(result[0].insertId);
+  return await findUserById(insertId);
+}
+
+export async function updateUserLastSignIn(userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db.update(users)
+    .set({ lastSignedIn: new Date() })
+    .where(eq(users.id, userId));
+}
+
+// Session operations
+export async function createSession(data: {
+  userId: number;
+  token: string;
+  expiresAt: Date;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error('Database connection failed');
+  
+  await db.insert(sessions).values(data);
 }
 
 export async function findSessionByToken(token: string) {
-  const dbInstance = await db.getDb();
-  const session = await dbInstance.query.sessions.findFirst({
-    where: (sessions: any, { eq }: any) => eq(sessions.token, token),
-    with: {
-      user: true,
-    },
-  });
-  return session;
-}
-
-export async function deleteSession(sessionId: string) {
-  const dbInstance = await db.getDb();
-  const { sessions } = await import('../../drizzle/schema');
-  const { eq } = await import('drizzle-orm');
-  await dbInstance.delete(sessions).where(eq((sessions as any).id, sessionId));
-}
-
-// Magic link management
-export async function saveMagicLink(email: string, token: string, expiresAt: Date) {
-  const dbInstance = await db.getDb();
-  const { magicLinks } = await import('../../drizzle/schema');
+  const db = await getDb();
+  if (!db) return null;
   
-  await dbInstance.insert(magicLinks).values({
-    email,
-    token,
-    expiresAt,
-    used: false,
-  });
+  const result = await db.select().from(sessions).where(eq(sessions.token, token)).limit(1);
+  return result[0] || null;
 }
 
-export async function findMagicLink(token: string) {
-  const dbInstance = await db.getDb();
-  const link = await dbInstance.query.magicLinks.findFirst({
-    where: (magicLinks: any, { eq }: any) => eq(magicLinks.token, token),
-  });
-  return link;
+export async function deleteSession(token: string) {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db.delete(sessions).where(eq(sessions.token, token));
 }
 
-export async function markMagicLinkAsUsed(token: string) {
-  const dbInstance = await db.getDb();
-  const { magicLinks } = await import('../../drizzle/schema');
-  const { eq } = await import('drizzle-orm');
-  await dbInstance.update(magicLinks)
-    .set({ used: true })
-    .where(eq((magicLinks as any).token, token));
+export async function deleteExpiredSessions() {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db.delete(sessions).where(eq(sessions.expiresAt, new Date()));
+}
+
+// Magic link operations
+export async function createMagicLink(data: {
+  email: string;
+  token: string;
+  expiresAt: Date;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error('Database connection failed');
+  
+  await db.insert(magicLinks).values(data);
+}
+
+export async function findMagicLinkByToken(token: string) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const result = await db.select().from(magicLinks).where(eq(magicLinks.token, token)).limit(1);
+  return result[0] || null;
+}
+
+export async function deleteMagicLink(token: string) {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db.delete(magicLinks).where(eq(magicLinks.token, token));
+}
+
+export async function deleteExpiredMagicLinks() {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db.delete(magicLinks).where(eq(magicLinks.expiresAt, new Date()));
 }

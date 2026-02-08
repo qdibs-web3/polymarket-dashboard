@@ -6,7 +6,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { setupVite, serveStatic } from "./vite";
 import passport from '../auth/google-oauth';
-import authRoutes from '../auth/routes';
+import { registerAuthRoutes } from '../auth/routes';
 import { optionalAuthMiddleware } from '../auth/middleware';
 
 const app = express();
@@ -19,7 +19,7 @@ app.use(express.json());
 app.use(passport.initialize());
 
 // Auth routes (Google OAuth)
-app.use('/api/auth', authRoutes);
+registerAuthRoutes(app);
 
 // tRPC middleware with optional auth
 app.use(

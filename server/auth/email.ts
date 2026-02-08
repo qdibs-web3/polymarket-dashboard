@@ -1,55 +1,96 @@
-import sgMail from '@sendgrid/mail';
+// Email sending utility
+// Supports multiple providers: SendGrid, Resend, or Nodemailer (SMTP)
 
 const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER || 'console';
 const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@predictiveapex.club';
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || '';
+const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 
-if (EMAIL_PROVIDER === 'sendgrid' && SENDGRID_API_KEY) {
-  sgMail.setApiKey(SENDGRID_API_KEY);
-}
-
-export interface EmailOptions {
+interface EmailOptions {
   to: string;
   subject: string;
   html: string;
-  text?: string;
+}
+
+async function sendWithSendGrid(options: EmailOptions ): Promise<void> {
+  const sgMail = await import('@sendgrid/mail');
+  sgMail.default.setApiKey(process.env.SENDGRID_API_KEY!);
+  
+  await sgMail.default.send({
+    to: options.to,
+    from: FROM_EMAIL,
+    subject: options.subject,
+    html: options.html,
+  });
+}
+
+async function sendWithResend(options: EmailOptions): Promise<void> {
+  const { Resend } = await import('resend');
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  
+  await resend.emails.send({
+    from: FROM_EMAIL,
+    to: options.to,
+    subject: options.subject,
+    html: options.html,
+  });
+}
+
+async function sendWithSMTP(options: EmailOptions): Promise<void> {
+  const nodemailer = await import('nodemailer');
+  
+  const transporter = nodemailer.default.createTransport({
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT || '587'),
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+  
+  await transporter.sendMail({
+    from: FROM_EMAIL,
+    to: options.to,
+    subject: options.subject,
+    html: options.html,
+  });
+}
+
+async function sendToConsole(options: EmailOptions): Promise<void> {
+  console.log('\n========== EMAIL ==========');
+  console.log('To:', options.to);
+  console.log('Subject:', options.subject);
+  console.log('HTML:', options.html);
+  console.log('===========================\n');
 }
 
 export async function sendEmail(options: EmailOptions): Promise<void> {
-  const { to, subject, html, text } = options;
-  
-  if (EMAIL_PROVIDER === 'console') {
-    console.log('\n=== EMAIL (Console Mode) ===');
-    console.log(`To: ${to}`);
-    console.log(`From: ${FROM_EMAIL}`);
-    console.log(`Subject: ${subject}`);
-    console.log(`Text: ${text || 'N/A'}`);
-    console.log(`HTML: ${html}`);
-    console.log('============================\n');
-    return;
-  }
-  
-  if (EMAIL_PROVIDER === 'sendgrid') {
-    try {
-      await sgMail.send({
-        to,
-        from: FROM_EMAIL,
-        subject,
-        html,
-        text: text || '',
-      });
-      console.log(`Email sent to ${to} via SendGrid`);
-    } catch (error) {
-      console.error('SendGrid error:', error);
-      throw new Error('Failed to send email via SendGrid');
+  try {
+    switch (EMAIL_PROVIDER) {
+      case 'sendgrid':
+        await sendWithSendGrid(options);
+        break;
+      case 'resend':
+        await sendWithResend(options);
+        break;
+      case 'smtp':
+        await sendWithSMTP(options);
+        break;
+      case 'console':
+      default:
+        await sendToConsole(options);
+        break;
     }
-    return;
+    console.log(`[Email] Sent email to ${options.to}`);
+  } catch (error) {
+    console.error('[Email] Failed to send email:', error);
+    throw error;
   }
-  
-  throw new Error(`Unsupported email provider: ${EMAIL_PROVIDER}`);
 }
 
-export function buildMagicLinkEmail(magicLinkUrl: string): { html: string; text: string } {
+export async function sendMagicLinkEmail(email: string, token: string): Promise<void> {
+  const magicLink = `${APP_URL}/auth/verify?token=${token}`;
+  
   const html = `
     <!DOCTYPE html>
     <html>
@@ -58,46 +99,38 @@ export function buildMagicLinkEmail(magicLinkUrl: string): { html: string; text:
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Sign in to Predictive Apex</title>
     </head>
-    <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
-      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 40px 0;">
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0f172a; margin: 0; padding: 40px 20px;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #1e293b; border-radius: 8px; overflow: hidden;">
         <tr>
-          <td align="center">
-            <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          <td style="padding: 40px 40px 20px;">
+            <h1 style="color: #ffffff; font-size: 24px; margin: 0 0 20px;">Welcome to Predictive Apex</h1>
+            <p style="color: #cbd5e1; font-size: 16px; line-height: 1.6; margin: 0 0 30px;">
+              Click the button below to sign in to your account. This link will expire in 15 minutes.
+            </p>
+            <table cellpadding="0" cellspacing="0" style="margin: 0 0 30px;">
               <tr>
-                <td style="padding: 40px;">
-                  <h1 style="margin: 0 0 24px 0; font-size: 24px; font-weight: 600; color: #111827;">
-                    Sign in to Predictive Apex
-                  </h1>
-                  <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #4b5563;">
-                    Click the button below to sign in to your account. This link will expire in 15 minutes.
-                  </p>
-                  <table width="100%" cellpadding="0" cellspacing="0">
-                    <tr>
-                      <td align="center" style="padding: 16px 0;">
-                        <a href="${magicLinkUrl}" style="display: inline-block; padding: 12px 32px; background-color: #3b82f6; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 16px;">
-                          Sign In
-                        </a>
-                      </td>
-                    </tr>
-                  </table>
-                  <p style="margin: 24px 0 0 0; font-size: 14px; line-height: 20px; color: #6b7280;">
-                    If you didn't request this email, you can safely ignore it.
-                  </p>
-                  <p style="margin: 16px 0 0 0; font-size: 12px; line-height: 18px; color: #9ca3af;">
-                    Or copy and paste this URL into your browser:  
-
-                    <a href="${magicLinkUrl}" style="color: #3b82f6; word-break: break-all;">${magicLinkUrl}</a>
-                  </p>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding: 24px 40px; background-color: #f9fafb; border-top: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;">
-                  <p style="margin: 0; font-size: 12px; line-height: 18px; color: #6b7280; text-align: center;">
-                    © 2025 Predictive Apex. All rights reserved.
-                  </p>
+                <td style="background-color: #3b82f6; border-radius: 6px; text-align: center;">
+                  <a href="${magicLink}" style="display: inline-block; padding: 14px 40px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600;">
+                    Sign In
+                  </a>
                 </td>
               </tr>
             </table>
+            <p style="color: #94a3b8; font-size: 14px; line-height: 1.6; margin: 0;">
+              If you didn't request this email, you can safely ignore it.
+            </p>
+            <p style="color: #64748b; font-size: 12px; line-height: 1.6; margin: 20px 0 0;">
+              Or copy and paste this link into your browser:  
+
+              <a href="${magicLink}" style="color: #3b82f6; word-break: break-all;">${magicLink}</a>
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 20px 40px; background-color: #0f172a; text-align: center;">
+            <p style="color: #64748b; font-size: 12px; margin: 0;">
+              © 2025 Predictive Apex. All rights reserved.
+            </p>
           </td>
         </tr>
       </table>
@@ -105,15 +138,9 @@ export function buildMagicLinkEmail(magicLinkUrl: string): { html: string; text:
     </html>
   `;
   
-  const text = `
-Sign in to Predictive Apex
-
-Click the link below to sign in to your account. This link will expire in 15 minutes.
-
-${magicLinkUrl}
-
-If you didn't request this email, you can safely ignore it.
-  `.trim();
-  
-  return { html, text };
+  await sendEmail({
+    to: email,
+    subject: 'Sign in to Predictive Apex',
+    html,
+  });
 }

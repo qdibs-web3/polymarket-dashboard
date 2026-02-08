@@ -1,42 +1,57 @@
-import { Router } from 'express';
+import { Express, Request, Response } from 'express';
 import passport from './google-oauth';
-import { generateToken } from './jwt';
-import { saveSession } from './db-helpers';
+import { generateToken, generateSessionId } from './jwt';
+import { createSession } from './db-helpers';
 
-const router = Router();
-
-// Google OAuth login
-router.get('/google', passport.authenticate('google', {
-  scope: ['profile', 'email'],
-  session: false,
-}));
-
-// Google OAuth callback
-router.get('/google/callback',
-  passport.authenticate('google', { session: false, failureRedirect: '/login?error=google_auth_failed' }),
-  async (req, res) => {
-    try {
-      const user = req.user as any;
-      
-      if (!user) {
-        return res.redirect('/login?error=no_user');
+export function registerAuthRoutes(app: Express) {
+  // Initialize passport
+  app.use(passport.initialize());
+  
+  // Google OAuth - Initiate
+  app.get(
+    '/api/auth/google',
+    passport.authenticate('google', {
+      scope: ['profile', 'email'],
+      session: false,
+    })
+  );
+  
+  // Google OAuth - Callback
+  app.get(
+    '/api/auth/google/callback',
+    passport.authenticate('google', {
+      session: false,
+      failureRedirect: '/login?error=google_auth_failed',
+    }),
+    async (req: Request, res: Response) => {
+      try {
+        const user = req.user as any;
+        
+        if (!user) {
+          return res.redirect('/login?error=no_user');
+        }
+        
+        // Create session
+        const sessionId = generateSessionId();
+        const token = generateToken(user.id, sessionId);
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+        
+        await createSession({
+          userId: user.id,
+          token,
+          expiresAt,
+        });
+        
+        console.log(`[Auth] Google OAuth successful for user ${user.email}`);
+        
+        // Redirect to frontend with token
+        res.redirect(`/auth/callback?token=${token}`);
+      } catch (error) {
+        console.error('[Auth] Google OAuth callback error:', error);
+        res.redirect('/login?error=callback_failed');
       }
-      
-      // Generate JWT token
-      const { token, sessionId } = generateToken(user.id, user.email);
-      
-      // Save session to database
-      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-      await saveSession(sessionId, user.id, token, expiresAt);
-      
-      // Redirect to frontend with token
-      const appUrl = process.env.APP_URL || 'http://localhost:3000';
-      res.redirect(`${appUrl}/auth/callback?token=${token}` );
-    } catch (error) {
-      console.error('Google callback error:', error);
-      res.redirect('/login?error=callback_failed');
     }
-  }
-);
-
-export default router;
+  );
+  
+  console.log('[Auth] Google OAuth routes registered');
+}
