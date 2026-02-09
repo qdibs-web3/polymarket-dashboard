@@ -6,6 +6,8 @@ import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, boolean,
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
   openId: varchar("openId", { length: 255 }).notNull().unique(),
+  google_id: varchar("google_id", { length: 255 }),
+  wallet_address: varchar("wallet_address", { length: 255 }),
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
@@ -30,18 +32,18 @@ export const users = mysqlTable("users", {
 // ADD THESE TWO TABLES HERE:
 export const sessions = mysqlTable("sessions", {
   id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+  userId: int("user_id").notNull(),
   token: varchar("token", { length: 500 }).notNull().unique(),
-  expiresAt: timestamp("expiresAt").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const magicLinks = mysqlTable("magic_links", {
   id: int("id").autoincrement().primaryKey(),
   email: varchar("email", { length: 320 }).notNull(),
   token: varchar("token", { length: 500 }).notNull().unique(),
-  expiresAt: timestamp("expiresAt").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 

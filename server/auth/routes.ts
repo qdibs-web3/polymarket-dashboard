@@ -1,7 +1,7 @@
 import { Express, Request, Response } from 'express';
 import passport from './google-oauth';
 import { generateToken, generateSessionId } from './jwt';
-import { createSession } from './db-helpers';
+import { createSession, updateUserLastSignIn } from './db-helpers';
 
 export function registerAuthRoutes(app: Express) {
   // Initialize passport
@@ -32,8 +32,7 @@ export function registerAuthRoutes(app: Express) {
         }
         
         // Create session
-        const sessionId = generateSessionId();
-        const token = generateToken(user.id, sessionId);
+        const { token, sessionId } = generateToken(user.id, user.email || '');
         const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
         
         await createSession({
@@ -41,6 +40,9 @@ export function registerAuthRoutes(app: Express) {
           token,
           expiresAt,
         });
+        
+        // Update last signed in timestamp
+        await updateUserLastSignIn(user.id);
         
         console.log(`[Auth] Google OAuth successful for user ${user.email}`);
         

@@ -1,6 +1,7 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import type { User } from "../../drizzle/schema";
-import * as db from "../db";
+import { verifyToken } from "../auth/jwt";
+import { findUserById } from "../auth/db-helpers";
 
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
@@ -14,13 +15,18 @@ export async function createContext(
   let user: User | null = null;
 
   try {
-    // Get Clerk user ID from request (set by Clerk middleware)
-    const clerkUserId = (opts.req as any).auth?.userId;
+    // Get JWT token from Authorization header
+    const authHeader = opts.req.headers.authorization;
     
-    if (clerkUserId) {
-      // Fetch user from database by Clerk openId
-      const dbUser = await db.getUserByOpenId(clerkUserId);
-      user = dbUser || null;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      const payload = verifyToken(token);
+      
+      if (payload && payload.userId) {
+        // Fetch user from database by userId from JWT
+        const dbUser = await findUserById(payload.userId);
+        user = dbUser || null;
+      }
     }
   } catch (error) {
     // Authentication is optional for public procedures.

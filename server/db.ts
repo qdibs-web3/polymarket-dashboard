@@ -51,13 +51,13 @@ export async function getDb() {
         user: decodeURIComponent(url.username),
         password: decodeURIComponent(url.password),
         database: url.pathname.slice(1) || 'test',
-        ssl: { rejectUnauthorized: true },
+        ssl: { rejectUnauthorized: false },
         waitForConnections: true,
         connectionLimit: 10,
         queueLimit: 0,
         enableKeepAlive: true,
         keepAliveInitialDelay: 0,
-        connectTimeout: 10000,
+        connectTimeout: 60000,
       });
       
       _pool = pool;

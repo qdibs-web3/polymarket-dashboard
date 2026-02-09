@@ -27,9 +27,7 @@ export async function testDbConnection() {
 export async function findUserByGoogleId(googleId: string) {
   const db = await getDb();
   if (!db) return null;
-  
-  const result = await db.select().from(users).where(eq(users.openId, googleId)).limit(1);
-  return result[0] || null;
+  const result = await db.select().from(users).where(eq(users.google_id, googleId)).limit(1);  return result[0] || null;
 }
 
 export async function findUserByEmail(email: string) {
@@ -58,7 +56,8 @@ export async function createUser(data: {
   if (!db) throw new Error('Database connection failed');
   
   const result = await db.insert(users).values({
-    openId: data.googleId || '',
+    openId: data.googleId || `email:${data.email}`,
+    google_id: data.googleId || null, // <-- ADD THIS LINE
     email: data.email,
     name: data.name || null,
     loginMethod: data.loginMethod,

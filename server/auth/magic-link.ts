@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid';
 import { getDb } from '../db';
 import { magicLinks } from '../../drizzle/schema';
-import { eq, and, gt } from 'drizzle-orm';
+import { eq, and, gt, lt } from 'drizzle-orm';
 
 const MAGIC_LINK_EXPIRY_MINUTES = 15;
 
@@ -55,5 +55,6 @@ export async function cleanupExpiredLinks(): Promise<void> {
   const db = await getDb();
   if (!db) return;
   
-  await db.delete(magicLinks).where(gt(new Date(), magicLinks.expiresAt));
+  const now = new Date();
+  await db.delete(magicLinks).where(lt(magicLinks.expiresAt, now));
 }

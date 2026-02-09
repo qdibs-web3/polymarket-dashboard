@@ -7,7 +7,7 @@ import { createContext } from "./context";
 import { setupVite, serveStatic } from "./vite";
 import passport from '../auth/google-oauth';
 import { registerAuthRoutes } from '../auth/routes';
-import { optionalAuthMiddleware } from '../auth/middleware';
+
 
 const app = express();
 
@@ -21,10 +21,9 @@ app.use(passport.initialize());
 // Auth routes (Google OAuth)
 registerAuthRoutes(app);
 
-// tRPC middleware with optional auth
+// tRPC middleware (auth handled in context)
 app.use(
   "/api/trpc",
-  optionalAuthMiddleware,
   createExpressMiddleware({
     router: appRouter,
     createContext,
@@ -32,14 +31,18 @@ app.use(
 );
 
 // Vite dev server or static files
-if (process.env.NODE_ENV === "development") {
-  await setupVite(app);
-} else {
-  serveStatic(app);
+async function startServer() {
+  // Start server
+  const PORT = Number(process.env.PORT) || 3000;
+  const server = app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+
+  if (process.env.NODE_ENV === "development") {
+    await setupVite(app, server);
+  } else {
+    serveStatic(app);
+  }
 }
 
-// Start server
-const PORT = Number(process.env.PORT) || 3000;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on http://localhost:${PORT}` );
-});
+startServer().catch(console.error);

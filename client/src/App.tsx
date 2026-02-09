@@ -6,6 +6,10 @@ import VerifyMagicLink from "./pages/VerifyMagicLink";
 import GoogleCallback from "./pages/GoogleCallback";
 import Dashboard from "./pages/Dashboard";
 import Configuration from "./pages/Configuration";
+import Trades from "./pages/Trades";
+import Positions from "./pages/Positions";
+import BotControl from "./pages/BotControl";
+import Markets from "./pages/Markets";
 import DashboardLayout from "./components/DashboardLayout";
 
 function ProtectedRoute({ component: Component, ...rest }: any) {
@@ -40,6 +44,18 @@ function App() {
       </Route>
       <Route path="/config">
         <ProtectedRoute component={Configuration} />
+      </Route>
+      <Route path="/trades">
+        <ProtectedRoute component={Trades} />
+      </Route>
+      <Route path="/positions">
+        <ProtectedRoute component={Positions} />
+      </Route>
+      <Route path="/control">
+        <ProtectedRoute component={BotControl} />
+      </Route>
+      <Route path="/markets">
+        <ProtectedRoute component={Markets} />
       </Route>
       <Route>
         <div className="min-h-screen flex items-center justify-center">

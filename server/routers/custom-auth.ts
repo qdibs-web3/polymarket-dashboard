@@ -80,9 +80,16 @@ export const customAuthRouter = router({
           await updateUserLastSignIn(user.id);
         }
         
+        // Ensure user exists
+        if (!user) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to create user",
+          });
+        }
+        
         // Create session
-        const sessionId = generateSessionId();
-        const token = generateToken(user.id, sessionId);
+        const { token, sessionId } = generateToken(user.id, user.email || '');
         const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
         
         await createSession({
@@ -98,8 +105,8 @@ export const customAuthRouter = router({
           token,
           user: {
             id: user.id,
-            email: user.email,
-            name: user.name,
+            email: user.email || '',
+            name: user.name || '',
             role: user.role,
             subscriptionTier: user.subscriptionTier,
             subscriptionStatus: user.subscriptionStatus,
@@ -119,8 +126,19 @@ export const customAuthRouter = router({
 
   // Get current user (with JWT token)
   me: publicProcedure.query(async ({ ctx }) => {
-    // User is attached by auth middleware
-    return ctx.user || null;
+    // User is attached by context from JWT token
+    if (!ctx.user) {
+      return null;
+    }
+    
+    return {
+      id: ctx.user.id,
+      email: ctx.user.email || '',
+      name: ctx.user.name || '',
+      role: ctx.user.role,
+      subscriptionTier: ctx.user.subscriptionTier,
+      subscriptionStatus: ctx.user.subscriptionStatus,
+    };
   }),
 
   // Logout
