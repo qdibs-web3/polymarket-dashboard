@@ -1,9 +1,6 @@
 # Node modules
 /node_modules
 
-/env
-.env
-
 # Compilation output
 /dist
 
@@ -21,3 +18,21 @@
 
 # Hardhat coverage reports
 /coverage
+
+
+# Dependencies
+**/node_modules
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+*.dist
+
+# Environment variables
+/env
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

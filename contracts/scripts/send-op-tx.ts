@@ -1,22 +1,26 @@
-import { network } from "hardhat";
+import hre from "hardhat";
 
-const { ethers } = await network.connect({
-  network: "hardhatOp",
-  chainType: "op",
-});
+async function main() {
+  console.log("Sending transaction using the OP chain type");
 
-console.log("Sending transaction using the OP chain type");
+  const [sender] = await hre.ethers.getSigners();
 
-const [sender] = await ethers.getSigners();
+  console.log("Sending 1 wei from", sender.address, "to itself");
 
-console.log("Sending 1 wei from", sender.address, "to itself");
+  console.log("Sending L2 transaction");
+  const tx = await sender.sendTransaction({
+    to: sender.address,
+    value: 1n,
+  });
 
-console.log("Sending L2 transaction");
-const tx = await sender.sendTransaction({
-  to: sender.address,
-  value: 1n,
-});
+  await tx.wait();
 
-await tx.wait();
+  console.log("Transaction sent successfully");
+}
 
-console.log("Transaction sent successfully");
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });

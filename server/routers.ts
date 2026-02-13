@@ -1,12 +1,12 @@
 import { router } from "./_core/trpc";
 import { botRouter } from "./routers/bot";
 import { configRouter } from "./routers/config";
-import { customAuthRouter } from "./routers/custom-auth";
+import { walletRouter } from "./routers/wallet";
 
 export const appRouter = router({
   bot: botRouter,
   config: configRouter,
-  customAuth: customAuthRouter,
+  wallet: walletRouter,
 });
 
 export type AppRouter = typeof appRouter;

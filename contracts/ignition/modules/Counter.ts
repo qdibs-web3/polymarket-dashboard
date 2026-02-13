@@ -1,9 +1,36 @@
-import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
+import { expect } from "chai";
+import hre from "hardhat";
 
-export default buildModule("CounterModule", (m) => {
-  const counter = m.contract("Counter");
+describe("Counter", function () {
+  it("Should emit the Increment event when calling the inc() function", async function () {
+    const counter = await hre.ethers.deployContract("Counter");
 
-  m.call(counter, "incBy", [5n]);
+    await expect(counter.inc()).to.emit(counter, "Increment").withArgs(1n);
+  });
 
-  return { counter };
+  it("The sum of the Increment events should match the current value", async function () {
+    const counter = await hre.ethers.deployContract("Counter");
+    const deploymentBlockNumber = await hre.ethers.provider.getBlockNumber();
+
+    // run a series of increments
+    for (let i = 1; i <= 10; i++) {
+      await counter.incBy(i);
+    }
+
+    const events = await counter.queryFilter(
+      counter.filters.Increment(),
+      deploymentBlockNumber,
+      "latest",
+    );
+
+    // check that the aggregated events match the current value
+    let total = 0n;
+    for (const event of events) {
+      if ('args' in event) {
+        total += event.args.by;
+      }
+    }
+
+    expect(await counter.x()).to.equal(total);
+  });
 });
