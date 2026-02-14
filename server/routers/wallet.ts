@@ -12,16 +12,13 @@ export const walletRouter = router({
     walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/) 
   }))
   .query(async ({ input }) => {
-    console.log("🔍 getNonce called with:", input);  // ← ADD THIS
     
     try {
       const db = await getDb();
-      console.log("✅ Database connected");  // ← ADD THIS
       
       if (!db) throw new Error("Database connection failed");
       
       const walletAddress = input.walletAddress.toLowerCase();
-      console.log("🔍 Looking for wallet:", walletAddress);  // ← ADD THIS
       
       let user = await db
         .select()
@@ -32,26 +29,21 @@ export const walletRouter = router({
       console.log("👤 User found:", user.length > 0);  // ← ADD THIS
       
       const nonce = generateNonce();
-      console.log("🎲 Generated nonce:", nonce);  // ← ADD THIS
       
       if (user.length === 0) {
-        console.log("➕ Creating new user");  // ← ADD THIS
         await db.insert(users).values({
           wallet_address: walletAddress,
           nonce,
         });
       } else {
-        console.log("🔄 Updating existing user");  // ← ADD THIS
         await db
           .update(users)
           .set({ nonce })
           .where(eq(users.wallet_address, walletAddress));
       }
       
-      console.log("✅ Returning nonce");  // ← ADD THIS
       return { nonce };
     } catch (error) {
-      console.error("❌ Error in getNonce:", error);  // ← ADD THIS
       throw error;
     }
   }),
@@ -90,7 +82,7 @@ export const walletRouter = router({
         });
       }
       
-      const isValid = verifyWalletSignature(
+      const isValid = await verifyWalletSignature(
         walletAddress,
         input.signature,
         input.message
