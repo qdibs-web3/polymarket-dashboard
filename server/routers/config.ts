@@ -1,56 +1,52 @@
 import { router, protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
 import * as db from "../db";
-import { encrypt } from "../crypto";
+import { TRPCError } from "@trpc/server";
 
 export const configRouter = router({
   get: protectedProcedure.query(async ({ ctx }) => {
-    const config = await db.getBotConfig(ctx.user.id);
+    const user = await db.getUserByWalletAddress(ctx.user.walletAddress);
+    if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+    
+    const config = await db.getBotConfig(user.id);
 
     if (!config) {
       return null;
     }
 
-    return {
-      ...config,
-      polymarketPrivateKey: config.polymarketPrivateKey ? "***ENCRYPTED***" : "",
-    };
+    return config;
   }),
 
   update: protectedProcedure
     .input(
       z.object({
-        maxPositionSize: z.number().optional(),
-        maxOpenPositions: z.number().optional(),
-        maxDailyLoss: z.number().optional(),
-        targetDailyReturn: z.number().optional(),
-        minEdge: z.number().optional(),
-        kellyFraction: z.number().optional(),
-        arbitrageEnabled: z.boolean().optional(),
-        arbitrageMinProfitPct: z.number().optional(),
-        valueBettingEnabled: z.boolean().optional(),
-        highQualityMarketsEnabled: z.boolean().optional(),
-        minVolume: z.number().optional(),
-        minQualityScore: z.number().optional(),
+        // Bitcoin 15m strategy settings
+        btc15m_enabled: z.boolean().optional(),
+        btc15m_edge_threshold: z.string().optional(), // decimal as string
+        btc15m_min_probability: z.string().optional(),
+        btc15m_early_threshold: z.string().optional(),
+        btc15m_mid_threshold: z.string().optional(),
+        btc15m_late_threshold: z.string().optional(),
+        
+        // Bot operation
         runIntervalSeconds: z.number().optional(),
-        polymarketPrivateKey: z.string().optional(),
-        polymarketFunderAddress: z.string().optional(),
+        
+        // Smart contract settings
+        proxy_contract_address: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const existingConfig = await db.getBotConfig(ctx.user.id);
+      const user = await db.getUserByWalletAddress(ctx.user.walletAddress);
+      if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+      
+      const existingConfig = await db.getBotConfig(user.id);
 
       const configData: any = {
-        userId: ctx.user.id,
         ...existingConfig,
         ...input,
+        userId: user.id,
+        user_wallet_address: ctx.user.walletAddress,
       };
-
-      if (input.polymarketPrivateKey && input.polymarketPrivateKey !== "***ENCRYPTED***") {
-        configData.polymarketPrivateKey = encrypt(input.polymarketPrivateKey);
-      } else if (existingConfig?.polymarketPrivateKey) {
-        configData.polymarketPrivateKey = existingConfig.polymarketPrivateKey;
-      }
 
       await db.upsertBotConfig(configData);
 

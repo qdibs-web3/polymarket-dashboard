@@ -1,3 +1,8 @@
+/**
+ * Updated server/_core/index.ts for Phase 5
+ * Add bot manager initialization
+ */
+
 import 'dotenv/config';
 import express from "express";
 import cors from "cors";
@@ -5,7 +10,7 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { setupVite, serveStatic } from "./vite";
-
+import { BotManager } from "../services/botManager";
 
 const app = express();
 
@@ -35,6 +40,35 @@ async function startServer() {
   } else {
     serveStatic(app);
   }
+
+  // Initialize Bot Manager
+  console.log('[Server] Initializing Bot Manager...');
+  const botManager = BotManager.getInstance();
+  await botManager.initialize();
+  console.log('[Server] Bot Manager initialized');
+
+  // Handle graceful shutdown
+  const shutdown = async () => {
+    console.log('[Server] Shutting down gracefully...');
+    
+    // Stop all bots
+    await botManager.shutdown();
+    
+    // Close server
+    server.close(() => {
+      console.log('[Server] Server closed');
+      process.exit(0);
+    });
+    
+    // Force exit after 10 seconds
+    setTimeout(() => {
+      console.error('[Server] Forced shutdown after timeout');
+      process.exit(1);
+    }, 10000);
+  };
+
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
 }
 
 startServer().catch(console.error);

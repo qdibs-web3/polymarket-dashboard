@@ -7,18 +7,37 @@ import '@rainbow-me/rainbowkit/styles.css';
 import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import { WagmiProvider } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { config } from './lib/wagmi';
+import { httpBatchLink } from '@trpc/client';
+import superjson from 'superjson';
+import { trpc } from './lib/trpc';
+import { config } from './lib/wagmi.ts';
 
 const queryClient = new QueryClient();
 
+const trpcClient = trpc.createClient({
+  links: [
+    httpBatchLink({
+      url: 'http://localhost:3000/api/trpc',
+      headers() {
+        return {
+          'Content-Type': 'application/json',
+        };
+      },
+      transformer: superjson,
+    }),
+  ],
+});
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <WagmiProvider config={config}>
+    <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider modalSize="compact">
-          <App />
-        </RainbowKitProvider>
+        <WagmiProvider config={config}>
+          <RainbowKitProvider modalSize="compact">
+            <App />
+          </RainbowKitProvider>
+        </WagmiProvider>
       </QueryClientProvider>
-    </WagmiProvider>
+    </trpc.Provider>
   </React.StrictMode>
 );

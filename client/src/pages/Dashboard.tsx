@@ -1,20 +1,20 @@
 import { useAccount } from "wagmi";
 import { trpc } from "../lib/trpc";
 import BotControl from "../pages/BotControl";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "wouter";
 import { useEffect } from "react";
 
 
 export function Dashboard() {
   const { address, isConnected } = useAccount();
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
 
   // Redirect to login if not connected
   useEffect(() => {
     if (!isConnected) {
-      navigate("/login");
+      setLocation("/login");
     }
-  }, [isConnected, navigate]);
+  }, [isConnected, setLocation]);
 
   // Fetch user data
   const { data: user, isLoading: userLoading } = trpc.wallet.me.useQuery(
@@ -134,16 +134,16 @@ export function Dashboard() {
                     <td className="py-2">{trade.strategy}</td>
                     <td className="py-2 capitalize">{trade.side}</td>
                     <td className="py-2 text-right">
-                      ${parseFloat(trade.amount).toFixed(2)}
+                      ${parseFloat(trade.entryValue).toFixed(2)}
                     </td>
                     <td
                       className={`py-2 text-right ${
-                        parseFloat(trade.realizedPnl || "0") >= 0
+                        parseFloat(trade.pnl || "0") >= 0
                           ? "text-green-600"
                           : "text-red-600"
                       }`}
                     >
-                      ${parseFloat(trade.realizedPnl || "0").toFixed(2)}
+                      ${trade.pnl ? parseFloat(trade.pnl).toFixed(2) : "-"}
                     </td>
                   </tr>
                 ))}
@@ -157,4 +157,5 @@ export function Dashboard() {
     </div>
   );
 }
+
 export default Dashboard;
