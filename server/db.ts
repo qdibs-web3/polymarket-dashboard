@@ -18,7 +18,6 @@ import {
   type InsertPosition,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
-import { getDb } from './db';
 
 let pool: mysql.Pool | null = null;
 
@@ -115,22 +114,22 @@ export async function updateBotConfig(userId: number, data: Partial<BotConfig>) 
 // Trade Operations
 // ============================================
 
-export async function getTrades(userId: number, limit = 100) {
+export async function getTrades(
+  userId: number, 
+  options: { limit?: number; offset?: number } = {}
+) {
   const db = await getDb();
+  const { limit = 100, offset = 0 } = options;
+  
   return await db
     .select()
     .from(trades)
     .where(eq(trades.userId, userId))
-    .orderBy(desc(trades.createdAt))  // ← Use createdAt instead
-    .limit(limit);
+    .orderBy(desc(trades.createdAt))
+    .limit(limit)
+    .offset(offset);
 }
 
-
-
-export async function createTrade(data: InsertTrade) {
-  const db = await getDb();
-  return await db.insert(trades).values(data);
-}
 
 // ============================================
 // Position Operations
@@ -340,11 +339,12 @@ export async function getUserById(userId: number): Promise<any | null> {
 /**
  * Create a trade record
  */
+// AFTER
 export async function createTrade(data: {
   userId: number;
   marketId: string;
   marketQuestion: string;
-  strategy: string;
+  strategy: 'btc15m_up' | 'btc15m_down';
   side: 'yes' | 'no';
   entryPrice: number;
   quantity: number;
@@ -356,10 +356,16 @@ export async function createTrade(data: {
   const db = await getDb();
   if (!db) throw new Error('Database not available');
   
-  const result = await db.insert(trades).values(data);
+  // Convert numbers to strings for decimal fields
+  const result = await db.insert(trades).values({
+    ...data,
+    entryPrice: data.entryPrice.toString(),
+    quantity: data.quantity.toString(),
+    entryValue: data.entryValue.toString(),
+  });
   
-  // Return the inserted ID
-  return result.insertId as number;
+  // Get the inserted ID from the result array
+  return Number(result[0].insertId);
 }
 
 /**
@@ -379,9 +385,18 @@ export async function updateTrade(
   const db = await getDb();
   if (!db) throw new Error('Database not available');
   
+  // Convert number fields to strings for decimal columns
+  const dbUpdates: any = {};
+  if (updates.exitPrice !== undefined) dbUpdates.exitPrice = updates.exitPrice.toString();
+  if (updates.exitValue !== undefined) dbUpdates.exitValue = updates.exitValue.toString();
+  if (updates.exitTime !== undefined) dbUpdates.exitTime = updates.exitTime;
+  if (updates.pnl !== undefined) dbUpdates.pnl = updates.pnl.toString();
+  if (updates.pnlPct !== undefined) dbUpdates.pnlPct = updates.pnlPct.toString();
+  if (updates.status !== undefined) dbUpdates.status = updates.status;
+  
   await db
     .update(trades)
-    .set(updates)
+    .set(dbUpdates)
     .where(eq(trades.id, tradeId));
 }
 
@@ -444,7 +459,7 @@ export async function getTodayPnL(userId: number): Promise<number> {
       )
     );
   
-  return result.reduce((sum, trade) => sum + (trade.pnl || 0), 0);
+  return result.reduce((sum, trade) => sum + (trade.pnl ? parseFloat(trade.pnl) : 0), 0);
 }
 
 /**
@@ -463,8 +478,20 @@ export async function updateBotStatusFields(
   
   const { botStatus } = await import('../drizzle/schema');
   
+  // Convert decimal fields to strings
+  const dbFields: any = {};
+  if (fields.currentBalance !== undefined) {
+    dbFields.currentBalance = fields.currentBalance.toString();
+  }
+  if (fields.todayPnl !== undefined) {
+    dbFields.dailyPnl = fields.todayPnl.toString();  // Note: DB field is 'dailyPnl'
+  }
+  if (fields.todayTrades !== undefined) {
+    dbFields.totalTrades = fields.todayTrades;  // Note: DB field is 'totalTrades' (int)
+  }
+  
   await db
     .update(botStatus)
-    .set(fields)
+    .set(dbFields)
     .where(eq(botStatus.userId, userId));
 }

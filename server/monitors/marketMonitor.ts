@@ -5,7 +5,7 @@
 
 import WebSocket from 'ws';
 import { ethers } from 'ethers';
-import { MarketData, PriceData } from '../types';
+import { MarketData, PriceData } from '../bots/types';
 
 // Chainlink BTC/USD Price Feed ABI (only what we need)
 const CHAINLINK_ABI = [

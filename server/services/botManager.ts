@@ -4,7 +4,7 @@
  */
 
 import { BTC15mBot } from '../bots/btc15mBot';
-import { BotConfig } from '../bots/types';
+import type { BotConfig } from '../../drizzle/schema';
 import * as db from '../db';
 
 export class BotManager {
@@ -110,7 +110,7 @@ export class BotManager {
     }
     
     // Create bot instance
-    const bot = new BTC15mBot(userId, config.user_wallet_address, config as BotConfig);
+    const bot = new BTC15mBot(userId, config.user_wallet_address, config);
     
     // Start bot
     await bot.start();
@@ -207,7 +207,7 @@ export class BotManager {
       const activeUserIds = new Set(activeConfigs.map(c => c.userId));
       
       // Start bots that should be running but aren't
-      for (const userId of activeUserIds) {
+      for (const userId of Array.from(activeUserIds)) {        
         if (!this.bots.has(userId) || !this.bots.get(userId)!.isRunning()) {
           try {
             console.log(`[BotManager] Auto-starting bot for user ${userId}`);
@@ -219,7 +219,6 @@ export class BotManager {
             await db.upsertBotStatus({
               userId,
               status: 'error',
-              isActive: false,
               errorMessage: error.message,
             });
           }
@@ -227,7 +226,7 @@ export class BotManager {
       }
       
       // Stop bots that shouldn't be running
-      for (const userId of this.bots.keys()) {
+      for (const userId of Array.from(this.bots.keys())) {
         if (!activeUserIds.has(userId)) {
           console.log(`[BotManager] Auto-stopping bot for user ${userId}`);
           await this.stopBot(userId);

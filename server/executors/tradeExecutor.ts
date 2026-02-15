@@ -4,8 +4,9 @@
  */
 
 import { ethers } from 'ethers';
-import { TradeSignal, BotConfig } from './types';
-import * as db from '../../db';
+import { TradeSignal } from '../bots/types';
+import type { BotConfig } from '../../drizzle/schema';
+import * as db from '../db';
 
 // PolymarketBotProxy ABI (simplified)
 const PROXY_ABI = [
@@ -38,7 +39,20 @@ export class TradeExecutor {
       this.proxyContract = new ethers.Contract(proxyAddress, PROXY_ABI, this.botWallet);
     }
   }
-  
+
+  /**
+   * Get subscription tier limits
+   */
+  private getSubscriptionLimits(subscriptionTier: string) {
+    const limitsMap = {
+      none: { maxDailyTrades: 0, maxPositionSize: 0, kellyFraction: 0.25 },
+      basic: { maxDailyTrades: 10, maxPositionSize: 100, kellyFraction: 0.25 },
+      pro: { maxDailyTrades: 50, maxPositionSize: 500, kellyFraction: 0.25 },
+      enterprise: { maxDailyTrades: 999, maxPositionSize: 5000, kellyFraction: 0.25 },
+    };
+    return limitsMap[subscriptionTier as keyof typeof limitsMap] || limitsMap.none;
+  }
+
   /**
    * Execute trade based on signal
    */
@@ -52,6 +66,15 @@ export class TradeExecutor {
     if (!signal || signal.edge <= 0) {
       throw new Error('Invalid signal: edge must be positive');
     }
+
+    // Fetch user to get subscription tier
+    const user = await db.getUserById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Get limits from subscription tier
+    const limits = this.getSubscriptionLimits(user.subscriptionTier);
     
     // Check edge threshold
     const edgeThreshold = parseFloat(config.btc15m_edge_threshold || '0.02');
@@ -66,20 +89,20 @@ export class TradeExecutor {
     
     // Check user allowance
     const allowance = await this.proxyContract.getUserAllowance(userWalletAddress);
-    if (allowance === 0n) {
+    if (allowance === BigInt(0)) {
       throw new Error('User has not approved USDC allowance');
     }
     
-    // Calculate position size
-    const positionSize = this.calculatePositionSize(config, signal);
+    // Calculate position size (pass limits instead of config)
+    const positionSize = this.calculatePositionSize(limits, signal);
     
-    // Check tier limits
-    await this.checkTierLimits(userWalletAddress, config, positionSize);
+    // Check tier limits (pass limits instead of config)
+    await this.checkTierLimits(userWalletAddress, limits, positionSize);
     
     // Check daily trade limit
     const todayTrades = await db.getTodayTradeCount(userId);
-    if (todayTrades >= config.maxDailyTrades) {
-      throw new Error(`Daily trade limit reached: ${todayTrades}/${config.maxDailyTrades}`);
+    if (todayTrades >= limits.maxDailyTrades) {
+      throw new Error(`Daily trade limit reached: ${todayTrades}/${limits.maxDailyTrades}`);
     }
     
     // Execute trade via smart contract
@@ -95,7 +118,7 @@ export class TradeExecutor {
       userId,
       marketId: signal.marketId,
       marketQuestion: signal.marketQuestion,
-      strategy: 'btc15m',
+      strategy: signal.direction === 'UP' ? 'btc15m_up' : 'btc15m_down',
       side: signal.direction === 'UP' ? 'yes' : 'no',
       entryPrice: signal.entryPrice,
       quantity: positionSize / signal.entryPrice,
@@ -109,13 +132,7 @@ export class TradeExecutor {
     await db.createBotLog({
       userId,
       level: 'info',
-      message: `Trade executed: ${signal.direction} ${signal.marketQuestion}`,
-      metadata: JSON.stringify({
-        edge: signal.edge,
-        confidence: signal.confidence,
-        positionSize,
-        txHash,
-      }),
+      message: `Trade executed: ${signal.direction} ${signal.marketQuestion} | Edge: ${signal.edge.toFixed(4)}, Confidence: ${signal.confidence.toFixed(2)}, Size: $${positionSize}, Tx: ${txHash}`,
       timestamp: new Date(),
     });
     
@@ -125,9 +142,12 @@ export class TradeExecutor {
   /**
    * Calculate position size based on Kelly Criterion
    */
-  private calculatePositionSize(config: BotConfig, signal: TradeSignal): number {
-    const kellyFraction = config.kellyFraction || 0.25;
-    const maxPosition = config.maxPositionSize;
+  private calculatePositionSize(
+    limits: { maxPositionSize: number; kellyFraction: number },
+    signal: TradeSignal
+  ): number {
+    const kellyFraction = limits.kellyFraction;
+    const maxPosition = limits.maxPositionSize;
     
     // Kelly Criterion: f = (bp - q) / b
     // where:
@@ -166,7 +186,7 @@ export class TradeExecutor {
    */
   private async checkTierLimits(
     userWalletAddress: string,
-    config: BotConfig,
+    limits: { maxPositionSize: number },
     positionSize: number
   ): Promise<void> {
     if (!this.proxyContract) {
@@ -187,9 +207,9 @@ export class TradeExecutor {
     }
     
     // Check against config max position
-    if (positionSize > config.maxPositionSize) {
+    if (positionSize > limits.maxPositionSize) {
       throw new Error(
-        `Position size $${positionSize} exceeds config limit $${config.maxPositionSize}`
+        `Position size $${positionSize} exceeds config limit $${limits.maxPositionSize}`
       );
     }
   }
@@ -220,7 +240,7 @@ export class TradeExecutor {
       );
       
       // Add 20% buffer to gas estimate
-      const gasLimit = gasEstimate * 120n / 100n;
+      const gasLimit = gasEstimate * BigInt(120) / BigInt(100);
       
       // Execute transaction
       const tx = await this.proxyContract.executeTrade(

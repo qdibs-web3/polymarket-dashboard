@@ -8,7 +8,7 @@ import { MACD } from '../indicators/macd';
 import { VWAP } from '../indicators/vwap';
 import { HeikenAshi } from '../indicators/heikenAshi';
 import { Delta } from '../indicators/delta';
-import { TradeSignal, MarketData, IndicatorWeights, DEFAULT_INDICATOR_WEIGHTS } from '../types';
+import { TradeSignal, MarketData, IndicatorWeights, DEFAULT_INDICATOR_WEIGHTS } from '../bots/types';
 
 export class TechnicalAnalysisEngine {
   private rsi: RSI;

@@ -3,10 +3,11 @@
  * Individual bot for one user
  */
 
-import { TechnicalAnalysisEngine } from './engines/taEngine';
-import { MarketMonitor } from './monitors/marketMonitor';
-import { TradeExecutor } from './executors/tradeExecutor';
-import { BotConfig, TradeSignal } from './types';
+import { TechnicalAnalysisEngine } from '../engines/taEngine';
+import { MarketMonitor } from '../monitors/marketMonitor';
+import { TradeExecutor } from '../executors/tradeExecutor';
+import { TradeSignal } from './types';
+import type { BotConfig } from '../../drizzle/schema';
 import * as db from '../db';
 
 export class BTC15mBot {
@@ -44,8 +45,7 @@ export class BTC15mBot {
       // Update status to starting
       await db.upsertBotStatus({
         userId: this.userId,
-        status: 'starting',
-        isActive: true,
+        status: 'running',
         lastStartedAt: new Date(),
         errorMessage: null,
       });
@@ -62,7 +62,6 @@ export class BTC15mBot {
       await db.upsertBotStatus({
         userId: this.userId,
         status: 'running',
-        isActive: true,
         lastStartedAt: new Date(),
       });
       
@@ -86,7 +85,6 @@ export class BTC15mBot {
       await db.upsertBotStatus({
         userId: this.userId,
         status: 'error',
-        isActive: false,
         errorMessage: error.message,
       });
       
@@ -114,7 +112,6 @@ export class BTC15mBot {
     await db.upsertBotStatus({
       userId: this.userId,
       status: 'stopped',
-      isActive: false,
       lastStoppedAt: new Date(),
     });
     
@@ -228,14 +225,7 @@ export class BTC15mBot {
       await db.createBotLog({
         userId: this.userId,
         level: 'error',
-        message: `Trade execution failed: ${error.message}`,
-        metadata: JSON.stringify({
-          signal: {
-            direction: signal.direction,
-            edge: signal.edge,
-            confidence: signal.confidence,
-          },
-        }),
+        message: `Trade execution failed: ${error.message} | Signal: direction=${signal.direction}, edge=${signal.edge.toFixed(4)}, confidence=${signal.confidence.toFixed(2)}`,
         timestamp: new Date(),
       });
       
@@ -277,14 +267,14 @@ export class BTC15mBot {
   private async shouldContinue(): Promise<boolean> {
     try {
       // Reload config from database
-      const config = await db.getBotConfig(this.userId);
-      if (!config || !config.isActive) {
+        const config = await db.getBotConfig(this.userId);
+        if (!config || !config.isActive) {
         console.log(`[BTC15mBot] Bot disabled for user ${this.userId}`);
         return false;
-      }
-      
-      // Update config
-      this.config = config as BotConfig;
+        }
+
+        // Update config
+        this.config = config;  
       
       // Check subscription expiration
       const user = await db.getUserById(this.userId);

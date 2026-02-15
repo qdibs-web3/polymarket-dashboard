@@ -27,9 +27,9 @@ export const botRouter = router({
       lastStoppedAt: status?.lastStoppedAt,
       lastCycleAt: status?.lastCycleAt,
       errorMessage: status?.errorMessage,
-      currentBalance: status?.currentBalance || 0,
-      todayPnl: status?.todayPnl || 0,
-      todayTrades: status?.todayTrades || 0,
+      currentBalance: parseFloat(status?.currentBalance || "0"),
+      todayPnl: parseFloat(status?.dailyPnl || "0"),  // dailyPnl is a decimal string
+      todayTrades: status?.totalTrades || 0,
     };
   }),
 
