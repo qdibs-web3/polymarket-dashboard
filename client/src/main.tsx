@@ -18,9 +18,11 @@ const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({
       url: 'http://localhost:3000/api/trpc',
-      headers() {
+      headers( ) {
+        const token = localStorage.getItem('wallet_token');
         return {
           'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         };
       },
       transformer: superjson,

@@ -40,7 +40,26 @@ Timestamp: ${new Date().toISOString()}
 This signature will not trigger any blockchain transaction or cost gas.`;
       
       // Request signature from user
-      const signature = await signMessageAsync({ message });
+      console.log('[WalletAuth] Requesting signature...');
+      let signature: string | undefined;
+      try {
+        signature = await signMessageAsync({ message });
+        console.log('[WalletAuth] Signature type:', typeof signature);
+        console.log('[WalletAuth] Signature value:', signature);
+        alert(`Signature received: ${signature ? 'YES' : 'NO'}\nType: ${typeof signature}\nLength: ${signature?.length || 0}`);
+      } catch (signError: any) {
+        console.error('[WalletAuth] Signature rejected:', signError);
+        alert(`Signature ERROR: ${signError.message}`);
+        throw new Error('Signature request was rejected');
+      }
+      
+      if (!signature) {
+        alert('ERROR: Signature is undefined!');
+        throw new Error('No signature received from wallet');
+      }
+      
+      console.log('[WalletAuth] Signature received, verifying...');
+      alert('About to verify signature...');
       
       // Verify signature with backend
       const result = await verifyMutation.mutateAsync({
@@ -49,12 +68,21 @@ This signature will not trigger any blockchain transaction or cost gas.`;
         signature,
       });
       
-      if (result.success) {
-        console.log('[WalletAuth] Authentication successful');
+      console.log('[WalletAuth] Verification result:', result);
+      alert(`Verification result: ${JSON.stringify(result)}`);
+      
+      if (result.success && result.token) {
+        console.log('[WalletAuth] Authentication successful, storing token');
+        localStorage.setItem('wallet_token', result.token);
+        alert('SUCCESS! Redirecting to dashboard...');
         setLocation('/dashboard');
+      } else {
+        alert('ERROR: No token in response');
+        throw new Error('Authentication failed - no token received');
       }
     } catch (error: any) {
       console.error('[WalletAuth] Authentication failed:', error);
+      alert(`FINAL ERROR: ${error.message}`);
       setAuthError(error.message || 'Authentication failed');
       disconnect();
     } finally {
@@ -63,6 +91,7 @@ This signature will not trigger any blockchain transaction or cost gas.`;
   };
   
   const logout = async () => {
+    localStorage.removeItem('wallet_token');
     disconnect();
     setLocation('/');
   };

@@ -23,7 +23,22 @@ let pool: mysql.Pool | null = null;
 
 export async function getDb() {
   if (!pool) {
-    pool = mysql.createPool(ENV.databaseUrl);
+    // Parse the connection URL
+    const url = new URL(ENV.databaseUrl.replace('mysql://', 'http://' ));
+    
+    pool = mysql.createPool({
+      host: url.hostname,
+      port: parseInt(url.port) || 3306,
+      user: url.username,
+      password: url.password,
+      database: url.pathname.slice(1), // Remove leading slash
+      ssl: {
+        rejectUnauthorized: true
+      },
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0
+    });
   }
   return drizzle(pool);
 }
