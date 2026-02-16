@@ -18,6 +18,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// ✅ ADD LOGGING MIDDLEWARE BEFORE TRPC
+app.use('/api/trpc', (req, res, next) => {
+  console.log('[Express] tRPC Request:', {
+    method: req.method,
+    url: req.url,
+    contentType: req.headers['content-type'],
+    bodyType: typeof req.body,
+    body: req.body,
+    bodyKeys: req.body ? Object.keys(req.body) : 'no body',
+  });
+  next();
+});
+
 // tRPC middleware (auth handled in context)
 app.use(
   "/api/trpc",

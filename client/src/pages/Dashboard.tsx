@@ -1,11 +1,11 @@
 import { useAccount } from "wagmi";
 import { trpc } from "../lib/trpc";
-import BotControl from "../pages/BotControl";
+import BotControl from "./BotControl";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 
 
-export function Dashboard() {
+export default function Dashboard() {
   const { address, isConnected } = useAccount();
   const [, setLocation] = useLocation();
 
@@ -17,31 +17,73 @@ export function Dashboard() {
   }, [isConnected, setLocation]);
 
   // Fetch user data
-  const { data: user, isLoading: userLoading } = trpc.wallet.me.useQuery(
+  const { data: user, isLoading: userLoading, error: userError } = trpc.wallet.me.useQuery(
     undefined,
     { enabled: isConnected }
   );
 
   // Fetch bot config
-  const { data: botConfig, isLoading: configLoading } = trpc.config.get.useQuery(
+  const { data: botConfig, isLoading: configLoading, error: configError } = trpc.config.get.useQuery(
     undefined,
     { enabled: isConnected }
   );
 
   // Fetch recent trades
-  const { data: trades, isLoading: tradesLoading } = trpc.bot.getTrades.useQuery(
+  const { data: trades, isLoading: tradesLoading, error: tradesError } = trpc.bot.getTrades.useQuery(
     { limit: 10 },
     { enabled: isConnected }
   );
+
+  // Log errors for debugging
+  useEffect(() => {
+    if (userError) console.error('[Dashboard] User error:', userError);
+    if (configError) console.error('[Dashboard] Config error:', configError);
+    if (tradesError) console.error('[Dashboard] Trades error:', tradesError);
+  }, [userError, configError, tradesError]);
 
   if (!isConnected) {
     return null; // Will redirect
   }
 
+  // Show errors if any
+  if (userError || configError) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <h2 className="text-xl font-semibold text-red-800 mb-4">Error Loading Dashboard</h2>
+          {userError && (
+            <div className="mb-2">
+              <p className="font-medium">User Error:</p>
+              <p className="text-sm text-red-700">{userError.message}</p>
+            </div>
+          )}
+          {configError && (
+            <div className="mb-2">
+              <p className="font-medium">Config Error:</p>
+              <p className="text-sm text-red-700">{configError.message}</p>
+            </div>
+          )}
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          >
+            Reload Page
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (userLoading || configLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl">Loading...</div>
+        <div className="text-center">
+          <div className="text-xl mb-2">Loading Dashboard...</div>
+          <div className="text-sm text-gray-600">
+            {userLoading && <div>Loading user data...</div>}
+            {configLoading && <div>Loading bot config...</div>}
+          </div>
+        </div>
       </div>
     );
   }
@@ -91,10 +133,10 @@ export function Dashboard() {
             <div>
               <p className="text-sm text-gray-600">Status</p>
               <p className="text-lg font-medium">
-                {botConfig.isActive ? (
-                  <span className="text-green-600">Active</span>
+                {botConfig.btc15m_enabled ? (
+                  <span className="text-green-600">Enabled</span>
                 ) : (
-                  <span className="text-gray-600">Inactive</span>
+                  <span className="text-gray-600">Disabled</span>
                 )}
               </p>
             </div>
@@ -111,7 +153,11 @@ export function Dashboard() {
       {/* Recent Trades */}
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-xl font-semibold mb-4">Recent Trades</h2>
-        {tradesLoading ? (
+        {tradesError ? (
+          <div className="text-red-600">
+            Error loading trades: {tradesError.message}
+          </div>
+        ) : tradesLoading ? (
           <p>Loading trades...</p>
         ) : trades && trades.length > 0 ? (
           <div className="overflow-x-auto">
@@ -157,5 +203,3 @@ export function Dashboard() {
     </div>
   );
 }
-
-export default Dashboard;

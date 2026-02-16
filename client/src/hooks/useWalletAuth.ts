@@ -16,77 +16,90 @@ export function useWalletAuth() {
   const verifyMutation = trpc.wallet.verifySignature.useMutation();
   
   const authenticateWallet = async () => {
+    console.log('[WalletAuth] START - address:', address, 'isConnected:', isConnected);
+    
     if (!address || !isConnected) {
       setAuthError('Wallet not connected');
       return;
     }
     
+    // Capture address immediately
+    const walletAddress = address;
+    console.log('[WalletAuth] Captured walletAddress:', walletAddress);
+    
     setIsAuthenticating(true);
     setAuthError(null);
     
     try {
-      // Get nonce from backend using query client
+      // Get nonce
+      console.log('[WalletAuth] Step 1: Getting nonce for', walletAddress);
       const { nonce } = await utils.client.wallet.getNonce.query({
-        walletAddress: address,
+        walletAddress,
       });
+      console.log('[WalletAuth] Step 2: Got nonce:', nonce);
       
-      // Create message to sign
+      // Create message
       const message = `Sign in to Polymarket Bot
 
-Wallet: ${address}
+Wallet: ${walletAddress}
 Nonce: ${nonce}
 Timestamp: ${new Date().toISOString()}
 
 This signature will not trigger any blockchain transaction or cost gas.`;
       
-      // Request signature from user
-      console.log('[WalletAuth] Requesting signature...');
-      let signature: string | undefined;
-      try {
-        signature = await signMessageAsync({ message });
-        console.log('[WalletAuth] Signature type:', typeof signature);
-        console.log('[WalletAuth] Signature value:', signature);
-        alert(`Signature received: ${signature ? 'YES' : 'NO'}\nType: ${typeof signature}\nLength: ${signature?.length || 0}`);
-      } catch (signError: any) {
-        console.error('[WalletAuth] Signature rejected:', signError);
-        alert(`Signature ERROR: ${signError.message}`);
-        throw new Error('Signature request was rejected');
-      }
+      console.log('[WalletAuth] Step 3: Message created, length:', message.length);
+      
+      // Request signature
+      console.log('[WalletAuth] Step 4: Requesting signature...');
+      const signature = await signMessageAsync({ message });
+      console.log('[WalletAuth] Step 5: Got signature:', signature ? `YES (${signature.length} chars)` : 'NO');
       
       if (!signature) {
-        alert('ERROR: Signature is undefined!');
-        throw new Error('No signature received from wallet');
+        throw new Error('No signature received');
       }
       
-      console.log('[WalletAuth] Signature received, verifying...');
-      alert('About to verify signature...');
-      
-      // Verify signature with backend
-      const result = await verifyMutation.mutateAsync({
-        walletAddress: address,
+      // Prepare input object
+      const inputObject = {
+        walletAddress,
         message,
         signature,
+      };
+      
+      console.log('[WalletAuth] Step 6: Prepared input object:', {
+        walletAddress: inputObject.walletAddress,
+        messageLength: inputObject.message.length,
+        signatureLength: inputObject.signature.length,
+        walletAddressType: typeof inputObject.walletAddress,
+        messageType: typeof inputObject.message,
+        signatureType: typeof inputObject.signature,
       });
       
-      console.log('[WalletAuth] Verification result:', result);
-      alert(`Verification result: ${JSON.stringify(result)}`);
+      console.log('[WalletAuth] Step 7: Calling verifyMutation.mutateAsync...');
+      console.log('[WalletAuth] verifyMutation object:', verifyMutation);
+      console.log('[WalletAuth] verifyMutation.mutateAsync type:', typeof verifyMutation.mutateAsync);
+      
+      // Call mutation
+      const result = await verifyMutation.mutateAsync(inputObject);
+      
+      console.log('[WalletAuth] Step 8: Got result:', result);
       
       if (result.success && result.token) {
-        console.log('[WalletAuth] Authentication successful, storing token');
+        console.log('[WalletAuth] Step 9: SUCCESS! Storing token');
         localStorage.setItem('wallet_token', result.token);
-        alert('SUCCESS! Redirecting to dashboard...');
         setLocation('/dashboard');
       } else {
-        alert('ERROR: No token in response');
+        console.error('[WalletAuth] Step 9: FAILED - no token in result');
         throw new Error('Authentication failed - no token received');
       }
     } catch (error: any) {
-      console.error('[WalletAuth] Authentication failed:', error);
-      alert(`FINAL ERROR: ${error.message}`);
+      console.error('[WalletAuth] ERROR:', error);
+      console.error('[WalletAuth] Error message:', error.message);
+      console.error('[WalletAuth] Error stack:', error.stack);
       setAuthError(error.message || 'Authentication failed');
       disconnect();
     } finally {
       setIsAuthenticating(false);
+      console.log('[WalletAuth] END');
     }
   };
   

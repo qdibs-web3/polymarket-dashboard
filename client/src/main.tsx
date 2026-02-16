@@ -21,7 +21,6 @@ const trpcClient = trpc.createClient({
       headers( ) {
         const token = localStorage.getItem('wallet_token');
         return {
-          'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         };
       },

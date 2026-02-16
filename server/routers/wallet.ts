@@ -144,6 +144,7 @@ export const walletRouter = router({
 
   me: protectedProcedure
     .query(async ({ ctx }) => {
+      console.log('[wallet.me] Called, user:', ctx.user);
       const db = await getDb();
       if (!db) throw new Error("Database connection failed");
       
@@ -167,6 +168,7 @@ export const walletRouter = router({
         });
       }
       
+      console.log('[wallet.me] Returning user data');
       return {
         id: user[0].id,
         walletAddress: user[0].wallet_address,

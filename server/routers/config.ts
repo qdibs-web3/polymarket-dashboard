@@ -5,6 +5,7 @@ import { TRPCError } from "@trpc/server";
 
 export const configRouter = router({
   get: protectedProcedure.query(async ({ ctx }) => {
+    console.log('[config.get] Called, user:', ctx.user);
     const user = await db.getUserByWalletAddress(ctx.user.walletAddress);
     if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
     
@@ -14,6 +15,7 @@ export const configRouter = router({
       return null;
     }
 
+    console.log('[config.get] Returning config:', config ? 'found' : 'null');
     return config;
   }),
 
