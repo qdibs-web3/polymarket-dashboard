@@ -88,7 +88,7 @@ export default function Subscribe() {
   const { toast } = useToast();
   
   const createCheckout = trpc.subscription.createCheckout.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       if (data.checkoutUrl) {
         toast({
           title: "Redirecting to checkout...",
@@ -97,7 +97,7 @@ export default function Subscribe() {
         window.open(data.checkoutUrl, '_blank');
       }
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
         description: error.message,
