@@ -2,3 +2,4 @@
 /* tslint:disable */
 /* eslint-disable */
 export type { PolymarketBotProxy } from "./PolymarketBotProxy";
+export type { SubscriptionManager } from "./SubscriptionManager";

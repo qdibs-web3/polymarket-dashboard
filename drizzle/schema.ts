@@ -15,8 +15,6 @@ export const users = mysqlTable("users", {
   // Subscription fields
   subscriptionTier: mysqlEnum("subscriptionTier", ["none", "basic", "pro", "enterprise"]).default("none").notNull(),
   subscriptionStatus: mysqlEnum("subscriptionStatus", ["none", "active", "canceled", "past_due", "unpaid"]).default("none").notNull(),
-  stripeCustomerId: varchar("stripeCustomerId", { length: 255 }),
-  stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 255 }),
   subscriptionStartDate: timestamp("subscriptionStartDate"),
   subscriptionEndDate: timestamp("subscriptionEndDate"),
   
@@ -30,6 +28,8 @@ export const users = mysqlTable("users", {
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
+
+
 
 /**
  * Bot configuration - Bitcoin 15m strategy only
@@ -190,3 +190,20 @@ export type InsertWalletApproval = typeof walletApprovals.$inferInsert;
 
 // Keep other tables (performanceMetrics, botLogs, marketOpportunities, etc.) as they were
 // Just update any references to old strategy types
+
+export type SubscriptionTransaction = typeof subscriptionTransactions.$inferSelect;
+export type InsertSubscriptionTransaction = typeof subscriptionTransactions.$inferInsert;
+
+
+/**
+ * Subz
+ */
+export const subscriptionTransactions = mysqlTable("subscription_transactions", {
+  id: int("id").autoincrement().primaryKey(),
+  walletAddress: varchar("wallet_address", { length: 42 }).notNull(),
+  txHash: varchar("tx_hash", { length: 66 }).notNull().unique(),
+  tier: mysqlEnum("tier", ["basic", "pro", "premium"]),
+  amount: varchar("amount", { length: 20 }), // USDC amount in wei
+  status: varchar("status", { length: 20 }).notNull(), // confirmed, pending, failed
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});

@@ -1,59 +1,41 @@
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useAccount, useDisconnect } from "wagmi";
+import { useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarInset,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-  SidebarTrigger,
-  useSidebar,
-} from "@/components/ui/sidebar";
-import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, History, TrendingUp, Settings, Play, BarChart3 } from "lucide-react";
-import { CSSProperties, useEffect, useState } from "react";
-import { useLocation } from "wouter";
-import { useAccount, useDisconnect } from "wagmi";
-import { Button } from "./ui/button";
+  Home,
+  TrendingUp,
+  BarChart3,
+  Settings,
+  LogOut,
+  User,
+  Activity,
+} from "lucide-react";
+import { useEffect } from "react";
 
-const menuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/" },
-  { icon: History, label: "Trades", path: "/trades" },
-  { icon: TrendingUp, label: "Positions", path: "/positions" },
-  { icon: Play, label: "Bot Control", path: "/control" },
-  { icon: BarChart3, label: "Markets", path: "/markets" },
-  { icon: Settings, label: "Configuration", path: "/config" },
+interface DashboardLayoutProps {
+  children: React.ReactNode;
+}
+
+const navigation = [
+  { name: "Dashboard", href: "/dashboard", icon: Home },
+  { name: "Trades", href: "/trades", icon: TrendingUp },
+  { name: "Positions", href: "/positions", icon: BarChart3 },
+  { name: "Markets", href: "/markets", icon: Activity },
+  { name: "Configuration", href: "/config", icon: Settings },
 ];
 
-const SIDEBAR_WIDTH_KEY = "sidebar-width";
-const DEFAULT_WIDTH = 280;
-const MIN_WIDTH = 200;
-const MAX_WIDTH = 480;
-
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const [sidebarWidth, setSidebarWidth] = useState(() => {
-    const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
-    return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
-  });
+export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { address, isConnected } = useAccount();
-  const [, setLocation] = useLocation();
-
-  useEffect(() => {
-    localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
-  }, [sidebarWidth]);
+  const { disconnect } = useDisconnect();
+  const [location, setLocation] = useLocation();
 
   // Redirect to login if not connected
   useEffect(() => {
@@ -62,126 +44,86 @@ export default function DashboardLayout({
     }
   }, [isConnected, setLocation]);
 
-  if (!isConnected) {
-    return null; // Will redirect
-  }
-
-  return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": `${sidebarWidth}px`,
-        } as CSSProperties
-      }
-    >
-      <DashboardLayoutContent setSidebarWidth={setSidebarWidth} address={address}>
-        {children}
-      </DashboardLayoutContent>
-    </SidebarProvider>
-  );
-}
-
-type DashboardLayoutContentProps = {
-  children: React.ReactNode;
-  setSidebarWidth: (width: number) => void;
-  address: string | undefined;
-};
-
-function DashboardLayoutContent({
-  children,
-  setSidebarWidth,
-  address,
-}: DashboardLayoutContentProps) {
-  const [location, setLocation] = useLocation();
-  const { disconnect } = useDisconnect();
-  const isMobile = useIsMobile();
-  const { open } = useSidebar();
-
   const handleLogout = () => {
     disconnect();
     setLocation("/login");
   };
 
+  if (!isConnected) {
+    return null; // Will redirect
+  }
+
+  const shortAddress = address
+    ? `${address.slice(0, 6)}...${address.slice(-4)}`
+    : "";
+
   return (
-    <>
-      <Sidebar collapsible="icon">
-        <SidebarHeader>
-          <div className="flex items-center gap-2 px-2 py-4">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <LayoutDashboard className="h-4 w-4" />
-            </div>
-            {open && (
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold">Polymarket Bot</span>
-                <span className="text-xs text-muted-foreground">Trading Dashboard</span>
-              </div>
-            )}
-          </div>
-        </SidebarHeader>
+    <div className="min-h-screen bg-[#0a0a0b] flex">
+      {/* Sidebar */}
+      <aside className="w-64 bg-[#18181b] border-r border-[#27272a] flex flex-col">
+        {/* Logo */}
+        <div className="p-6 border-b border-[#27272a]">
+          <h1 className="text-xl font-bold text-white">Polymarket Bot</h1>
+          <p className="text-sm text-gray-400 mt-1">Trading Dashboard</p>
+        </div>
 
-        <SidebarContent>
-          <SidebarMenu>
-            {menuItems.map((item) => (
-              <SidebarMenuItem key={item.path}>
-                <SidebarMenuButton
-                  onClick={() => setLocation(item.path)}
-                  isActive={location === item.path}
-                  tooltip={item.label}
-                >
-                  <item.icon className="h-4 w-4" />
-                  <span>{item.label}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarContent>
+        {/* Navigation */}
+        <nav className="flex-1 p-4 space-y-1">
+          {navigation.map((item) => {
+            const Icon = item.icon;
+            const isActive = location === item.href || location === item.href.replace("/dashboard", "/");
+            
+            return (
+              <button
+                key={item.name}
+                onClick={() => setLocation(item.href)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  isActive
+                    ? "bg-blue-500/10 text-blue-400"
+                    : "text-gray-400 hover:bg-[#27272a] hover:text-white"
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+                <span className="font-medium">{item.name}</span>
+              </button>
+            );
+          })}
+        </nav>
 
-        <SidebarFooter>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <SidebarMenuButton className="w-full">
-                    <Avatar className="h-6 w-6">
-                      <AvatarFallback className="text-xs">
-                        {address?.slice(2, 4).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    {open && (
-                      <div className="flex flex-col items-start text-left">
-                        <span className="text-xs font-medium">
-                          {address?.slice(0, 6)}...{address?.slice(-4)}
-                        </span>
-                        <span className="text-xs text-muted-foreground">Connected</span>
-                      </div>
-                    )}
-                  </SidebarMenuButton>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Disconnect</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarFooter>
-      </Sidebar>
+        {/* User Menu */}
+        <div className="p-4 border-t border-[#27272a]">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-3 text-gray-400 hover:text-white hover:bg-[#27272a]"
+              >
+                <User className="h-5 w-5" />
+                <div className="flex-1 text-left">
+                  <p className="text-sm font-medium">{shortAddress}</p>
+                  <p className="text-xs text-gray-500">Connected</p>
+                </div>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 bg-[#18181b] border-[#27272a]">
+              <DropdownMenuLabel className="text-gray-400">My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-[#27272a]" />
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="text-red-400 focus:text-red-400 focus:bg-red-500/10"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Disconnect Wallet
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </aside>
 
-      <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger />
-          <div className="flex flex-1 items-center justify-between">
-            <h2 className="text-lg font-semibold">
-              {menuItems.find((item) => item.path === location)?.label || "Dashboard"}
-            </h2>
-          </div>
-        </header>
-        <main className="flex-1 overflow-auto p-6">
-          {children}
-        </main>
-      </SidebarInset>
-    </>
+      {/* Main Content */}
+      <main className="flex-1 overflow-auto">
+        {children}
+      </main>
+    </div>
   );
 }

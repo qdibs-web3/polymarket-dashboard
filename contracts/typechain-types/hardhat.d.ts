@@ -33,6 +33,10 @@ declare module "hardhat/types/runtime" {
       name: "PolymarketBotProxy",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.PolymarketBotProxy__factory>;
+    getContractFactory(
+      name: "SubscriptionManager",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.SubscriptionManager__factory>;
 
     getContractAt(
       name: "Ownable",
@@ -59,6 +63,11 @@ declare module "hardhat/types/runtime" {
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.PolymarketBotProxy>;
+    getContractAt(
+      name: "SubscriptionManager",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.SubscriptionManager>;
 
     deployContract(
       name: "Ownable",
@@ -80,6 +89,10 @@ declare module "hardhat/types/runtime" {
       name: "PolymarketBotProxy",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.PolymarketBotProxy>;
+    deployContract(
+      name: "SubscriptionManager",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.SubscriptionManager>;
 
     deployContract(
       name: "Ownable",
@@ -106,6 +119,11 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.PolymarketBotProxy>;
+    deployContract(
+      name: "SubscriptionManager",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.SubscriptionManager>;
 
     // default types
     getContractFactory(

@@ -5,6 +5,7 @@ import {
   users,
   botConfig,
   botStatus,
+  subscriptionTransactions,
   trades,
   positions,
   walletApprovals,
@@ -509,4 +510,39 @@ export async function updateBotStatusFields(
     .update(botStatus)
     .set(dbFields)
     .where(eq(botStatus.userId, userId));
+}
+
+/**
+ * Log subscription transaction
+ */
+export async function logSubscriptionTransaction(data: {
+  walletAddress: string;
+  txHash: string;
+  status: string;
+  timestamp: Date;
+}) {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db.insert(subscriptionTransactions).values({
+    walletAddress: data.walletAddress,
+    txHash: data.txHash,
+    status: data.status,
+    createdAt: data.timestamp,
+  });
+}
+
+/**
+ * Get subscription history for wallet
+ */
+export async function getSubscriptionHistory(walletAddress: string) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db
+    .select()
+    .from(subscriptionTransactions)
+    .where(eq(subscriptionTransactions.walletAddress, walletAddress))
+    .orderBy(desc(subscriptionTransactions.createdAt))
+    .limit(50);
 }

@@ -13,7 +13,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
  */
 contract PolymarketBotProxy is Ownable, Pausable, ReentrancyGuard {
     
-    enum SubscriptionTier { NONE, BASIC, PRO, ENTERPRISE }
+    enum SubscriptionTier { NONE, BASIC, PRO, PREMIUM }
     
     struct TradingConfig {
         uint256 maxTradeSize;
@@ -50,11 +50,11 @@ contract PolymarketBotProxy is Ownable, Pausable, ReentrancyGuard {
         // Set tier limits (USDC has 6 decimals)
         tierMaxTradeSize[SubscriptionTier.BASIC] = 100 * 1e6;        // $100
         tierMaxTradeSize[SubscriptionTier.PRO] = 500 * 1e6;          // $500
-        tierMaxTradeSize[SubscriptionTier.ENTERPRISE] = 10000 * 1e6; // $10,000
+        tierMaxTradeSize[SubscriptionTier.PREMIUM] = 10000 * 1e6; // $10,000
         
         tierDailyLimit[SubscriptionTier.BASIC] = 1000 * 1e6;         // $1,000
         tierDailyLimit[SubscriptionTier.PRO] = 5000 * 1e6;           // $5,000
-        tierDailyLimit[SubscriptionTier.ENTERPRISE] = 100000 * 1e6;  // $100,000
+        tierDailyLimit[SubscriptionTier.PREMIUM] = 100000 * 1e6;  // $100,000
     }
     
     function setTradingConfig(

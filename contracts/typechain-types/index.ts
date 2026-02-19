@@ -16,3 +16,5 @@ export type { ReentrancyGuard } from "./@openzeppelin/contracts/utils/Reentrancy
 export { ReentrancyGuard__factory } from "./factories/@openzeppelin/contracts/utils/ReentrancyGuard__factory";
 export type { PolymarketBotProxy } from "./contracts/PolymarketBotProxy";
 export { PolymarketBotProxy__factory } from "./factories/contracts/PolymarketBotProxy__factory";
+export type { SubscriptionManager } from "./contracts/SubscriptionManager";
+export { SubscriptionManager__factory } from "./factories/contracts/SubscriptionManager__factory";

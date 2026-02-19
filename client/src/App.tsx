@@ -1,21 +1,26 @@
 import { Route, Switch } from "wouter";
+import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import LoginPage from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import Subscribe from "./pages/Subscribe";
 import Trades from "./pages/Trades";
 import Positions from "./pages/Positions";
-import BotControl from "./pages/BotControl";
 import Markets from "./pages/Markets";
 import Configuration from "./pages/Configuration";
-import Admin from "./pages/Admin";
-import PaymentHistory from "./pages/PaymentHistory";
 import DashboardLayout from "./components/DashboardLayout";
 import NotFound from "./pages/NotFound";
+import ErrorBoundary from "./components/ErrorBoundary";
+import { ThemeProvider } from "./contexts/ThemeContext";
 
-function App() {
+function Router() {
   return (
     <Switch>
       {/* Public routes */}
       <Route path="/login" component={LoginPage} />
+      
+      {/* Subscription page (for non-subscribers) */}
+      <Route path="/subscribe" component={Subscribe} />
       
       {/* Protected routes with DashboardLayout */}
       <Route path="/">
@@ -42,12 +47,6 @@ function App() {
         </DashboardLayout>
       </Route>
       
-      <Route path="/control">
-        <DashboardLayout>
-          <BotControl />
-        </DashboardLayout>
-      </Route>
-      
       <Route path="/markets">
         <DashboardLayout>
           <Markets />
@@ -60,21 +59,22 @@ function App() {
         </DashboardLayout>
       </Route>
       
-      <Route path="/admin">
-        <DashboardLayout>
-          <Admin />
-        </DashboardLayout>
-      </Route>
-      
-      <Route path="/payment-history">
-        <DashboardLayout>
-          <PaymentHistory />
-        </DashboardLayout>
-      </Route>
-      
       {/* 404 */}
       <Route component={NotFound} />
     </Switch>
+  );
+}
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <ThemeProvider defaultTheme="dark">
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

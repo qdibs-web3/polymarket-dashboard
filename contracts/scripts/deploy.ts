@@ -9,37 +9,88 @@ async function main() {
   console.log("Account balance:", hre.ethers.formatEther(balance), "MATIC");
   
   const botWalletAddress = process.env.BOT_HOT_WALLET_ADDRESS;
+  const treasuryAddress = process.env.TREASURY_ADDRESS || deployer.address;
+  const usdcAddress = process.env.USDC_ADDRESS;
   
   if (!botWalletAddress) {
     throw new Error("BOT_HOT_WALLET_ADDRESS not set in .env");
   }
   
-  console.log("Bot wallet address:", botWalletAddress);
-  console.log("\nDeploying PolymarketBotProxy...");
+  if (!usdcAddress) {
+    throw new Error("USDC_ADDRESS not set in .env (use Amoy USDC address)");
+  }
   
+  console.log("Bot wallet address:", botWalletAddress);
+  console.log("Treasury address:", treasuryAddress);
+  console.log("USDC address:", usdcAddress);
+  
+  // Deploy PolymarketBotProxy
+  console.log("\n📦 Deploying PolymarketBotProxy...");
   const PolymarketBotProxy = await hre.ethers.getContractFactory("PolymarketBotProxy");
   const proxy = await PolymarketBotProxy.deploy(botWalletAddress);
-  
   await proxy.waitForDeployment();
-  
   const proxyAddress = await proxy.getAddress();
+  console.log("✅ PolymarketBotProxy deployed to:", proxyAddress);
   
-  console.log("\n✅ PolymarketBotProxy deployed to:", proxyAddress);
-  console.log("\n📝 Add this to your ROOT .env file:");
+  // Deploy SubscriptionManager
+  console.log("\n📦 Deploying SubscriptionManager...");
+  const SubscriptionManager = await hre.ethers.getContractFactory("SubscriptionManager");
+  const subscriptionManager = await SubscriptionManager.deploy(
+    usdcAddress,     // _usdc
+    proxyAddress,    // _botProxy
+    treasuryAddress  // _treasury
+  );
+  await subscriptionManager.waitForDeployment();
+  const subscriptionAddress = await subscriptionManager.getAddress();
+  console.log("✅ SubscriptionManager deployed to:", subscriptionAddress);
+  
+  // Grant SubscriptionManager permission to update tiers in BotProxy
+  console.log("\n🔐 Granting SubscriptionManager permission to update tiers...");
+  // Note: You'll need to add a function in PolymarketBotProxy to allow SubscriptionManager to call setUserTier
+  // For now, the owner (deployer) will need to manually update tiers or add access control
+  
+  console.log("\n" + "=".repeat(60));
+  console.log("📝 DEPLOYMENT SUMMARY");
+  console.log("=".repeat(60));
+  console.log("\n✅ PolymarketBotProxy:", proxyAddress);
+  console.log("✅ SubscriptionManager:", subscriptionAddress);
+  
+  console.log("\n📋 Add these to your ROOT .env file:");
+  console.log("─".repeat(60));
   console.log(`PROXY_CONTRACT_ADDRESS=${proxyAddress}`);
+  console.log(`SUBSCRIPTION_CONTRACT_ADDRESS=${subscriptionAddress}`);
+  console.log("─".repeat(60));
   
-  console.log("\n📊 Tier Limits:");
+  console.log("\n📊 Subscription Tiers:");
+  const basicPrice = await subscriptionManager.getTierPrice(1);
+  const proPrice = await subscriptionManager.getTierPrice(2);
+  const premiumPrice = await subscriptionManager.getTierPrice(3);
+  
+  console.log("  BASIC:   $" + hre.ethers.formatUnits(basicPrice, 6) + " USDC/month");
+  console.log("  PRO:     $" + hre.ethers.formatUnits(proPrice, 6) + " USDC/month");
+  console.log("  PREMIUM: $" + hre.ethers.formatUnits(premiumPrice, 6) + " USDC/month");
+  
+  console.log("\n📊 Bot Proxy Tier Limits:");
   const basicLimits = await proxy.getTierLimits(1);
-  console.log("  BASIC:      Max Trade:", hre.ethers.formatUnits(basicLimits[0], 6), "USDC | Daily:", hre.ethers.formatUnits(basicLimits[1], 6), "USDC");
+  console.log("  BASIC:   Max Trade:", hre.ethers.formatUnits(basicLimits[0], 6), "USDC | Daily:", hre.ethers.formatUnits(basicLimits[1], 6), "USDC");
   
   const proLimits = await proxy.getTierLimits(2);
-  console.log("  PRO:        Max Trade:", hre.ethers.formatUnits(proLimits[0], 6), "USDC | Daily:", hre.ethers.formatUnits(proLimits[1], 6), "USDC");
+  console.log("  PRO:     Max Trade:", hre.ethers.formatUnits(proLimits[0], 6), "USDC | Daily:", hre.ethers.formatUnits(proLimits[1], 6), "USDC");
   
-  const enterpriseLimits = await proxy.getTierLimits(3);
-  console.log("  ENTERPRISE: Max Trade:", hre.ethers.formatUnits(enterpriseLimits[0], 6), "USDC | Daily:", hre.ethers.formatUnits(enterpriseLimits[1], 6), "USDC");
+  const premiumLimits = await proxy.getTierLimits(3);
+  console.log("  PREMIUM: Max Trade:", hre.ethers.formatUnits(premiumLimits[0], 6), "USDC | Daily:", hre.ethers.formatUnits(premiumLimits[1], 6), "USDC");
   
-  console.log("\n🔍 Verify on Polygonscan:");
-  console.log(`npx hardhat verify --network mumbai ${proxyAddress} "${botWalletAddress}"`);
+  console.log("\n🔍 Verify on PolygonScan (Amoy):");
+  console.log("─".repeat(60));
+  console.log(`npx hardhat verify --network amoy ${proxyAddress} "${botWalletAddress}"`);
+  console.log(`npx hardhat verify --network amoy ${subscriptionAddress} "${usdcAddress}" "${proxyAddress}" "${treasuryAddress}"`);
+  console.log("─".repeat(60));
+  
+  console.log("\n⚠️  IMPORTANT NEXT STEPS:");
+  console.log("1. Update PolymarketBotProxy to allow SubscriptionManager to call setUserTier");
+  console.log("2. Or manually update user tiers after they subscribe");
+  console.log("3. Get Amoy testnet USDC from faucet for testing");
+  console.log("4. Update frontend with contract addresses");
 }
 
 main()

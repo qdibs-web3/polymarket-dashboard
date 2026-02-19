@@ -2,3 +2,4 @@
 /* tslint:disable */
 /* eslint-disable */
 export { PolymarketBotProxy__factory } from "./PolymarketBotProxy__factory";
+export { SubscriptionManager__factory } from "./SubscriptionManager__factory";
