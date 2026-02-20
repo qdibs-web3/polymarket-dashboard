@@ -6,7 +6,7 @@ import { TRPCError } from "@trpc/server";
 export const configRouter = router({
   get: protectedProcedure.query(async ({ ctx }) => {
     console.log('[config.get] Called, user:', ctx.user);
-    const user = await db.getUserByWalletAddress(ctx.user.walletAddress);
+    const user = await db.getUserByWalletAddress(ctx.user.wallet_address);
     if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
     
     const config = await db.getBotConfig(user.id);
@@ -29,6 +29,11 @@ export const configRouter = router({
         btc15m_early_threshold: z.string().optional(),
         btc15m_mid_threshold: z.string().optional(),
         btc15m_late_threshold: z.string().optional(),
+
+        // Risk management
+        max_position_size: z.string().optional(), // decimal as string
+        daily_spend_limit: z.string().optional(), // decimal as string
+
         
         // Bot operation
         runIntervalSeconds: z.number().optional(),
@@ -38,7 +43,7 @@ export const configRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const user = await db.getUserByWalletAddress(ctx.user.walletAddress);
+      const user = await db.getUserByWalletAddress(ctx.user.wallet_address);
       if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
       
       const existingConfig = await db.getBotConfig(user.id);
@@ -47,7 +52,7 @@ export const configRouter = router({
         ...existingConfig,
         ...input,
         userId: user.id,
-        user_wallet_address: ctx.user.walletAddress,
+        user_wallet_address: ctx.user.wallet_address,
       };
 
       await db.upsertBotConfig(configData);

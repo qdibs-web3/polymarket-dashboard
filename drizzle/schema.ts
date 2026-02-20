@@ -51,6 +51,10 @@ export const botConfig = mysqlTable("bot_config", {
   btc15m_early_threshold: decimal("btc15m_early_threshold", { precision: 5, scale: 4 }).default("0.0500").notNull(),
   btc15m_mid_threshold: decimal("btc15m_mid_threshold", { precision: 5, scale: 4 }).default("0.1000").notNull(),
   btc15m_late_threshold: decimal("btc15m_late_threshold", { precision: 5, scale: 4 }).default("0.2000").notNull(),
+
+  // Risk management
+  max_position_size: decimal("max_position_size", { precision: 12, scale: 2 }).default("100.00").notNull(),
+  daily_spend_limit: decimal("daily_spend_limit", { precision: 12, scale: 2 }).default("1000.00").notNull(),
   
   // Bot operation
   runIntervalSeconds: int("runIntervalSeconds").default(60).notNull(),
@@ -126,6 +130,9 @@ export const trades = mysqlTable("trades", {
   // Timestamps
   entryTime: timestamp("entryTime").notNull(),
   exitTime: timestamp("exitTime"),
+
+  // Transaction hash - ADD THIS LINE
+  txHash: varchar("txHash", { length: 66 }),
   
   // Additional data
   metadata: json("metadata"),
@@ -136,6 +143,18 @@ export const trades = mysqlTable("trades", {
 
 export type Trade = typeof trades.$inferSelect;
 export type InsertTrade = typeof trades.$inferInsert;
+
+
+// Bot logs table
+export const botLogs = mysqlTable("bot_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  level: mysqlEnum("level", ["info", "warning", "error", "success"]).notNull(),
+  message: text("message").notNull(),
+  context: text("context"),
+  timestamp: timestamp("timestamp").notNull(),
+});
+
 
 /**
  * Open positions

@@ -19,6 +19,8 @@ import {
   type InsertPosition,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
+import { botLogs } from '../drizzle/schema';
+
 
 let pool: mysql.Pool | null = null;
 
@@ -271,28 +273,39 @@ export async function upsertBotConfig(data: Partial<BotConfig> & { userId: numbe
 // Bot Logs Operations
 // ============================================
 
-export async function createBotLog(data: {
-  userId: number;
-  level: string;
-  message: string;
-  timestamp: Date;
-}) {
-  const db = await getDb();
-  // Note: You'll need to create a botLogs table in schema if it doesn't exist
-  // For now, just log to console
-  console.log(`[Bot Log] User ${data.userId} - ${data.level}: ${data.message}`);
-  return { success: true };
-}
-
 export async function getBotLogs(
   userId: number,
   options: { limit: number; offset: number; level?: string }
 ) {
   const db = await getDb();
-  // Note: You'll need to create a botLogs table in schema if it doesn't exist
-  // For now, return empty array
-  return [];
+  if (!db) return [];
+  
+  try {
+    let whereConditions = eq(botLogs.userId, userId);
+    
+    // Filter by level if provided
+    if (options.level) {
+      whereConditions = and(
+        eq(botLogs.userId, userId),
+        eq(botLogs.level, options.level as any)
+      ) as any;
+    }
+    
+    const logs = await db
+      .select()
+      .from(botLogs)
+      .where(whereConditions)
+      .orderBy(desc(botLogs.timestamp))
+      .limit(options.limit)
+      .offset(options.offset);
+    
+    return logs;
+  } catch (error) {
+    console.error('[DB] Error fetching bot logs:', error);
+    return [];
+  }
 }
+
 
 /**
  * Get today's trade count for a user

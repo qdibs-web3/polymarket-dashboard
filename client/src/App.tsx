@@ -12,6 +12,8 @@ import DashboardLayout from "./components/DashboardLayout";
 import NotFound from "./pages/NotFound";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import Logs from "./pages/Logs";
+import "./index.css";
 
 function Router() {
   return (
@@ -44,6 +46,12 @@ function Router() {
       <Route path="/positions">
         <DashboardLayout>
           <Positions />
+        </DashboardLayout>
+      </Route>
+
+      <Route path="/positions">
+        <DashboardLayout>
+          <Logs />
         </DashboardLayout>
       </Route>
       

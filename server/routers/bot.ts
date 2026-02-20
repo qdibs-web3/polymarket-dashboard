@@ -14,7 +14,7 @@ export const botRouter = router({
    * Get bot status
    */
   getStatus: protectedProcedure.query(async ({ ctx }) => {
-    const user = await db.getUserByWalletAddress(ctx.user.walletAddress);
+    const user = await db.getUserByWalletAddress(ctx.user.wallet_address);
     if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
 
     const status = await db.getBotStatus(user.id);
@@ -37,7 +37,7 @@ export const botRouter = router({
    * Start bot
    */
   start: protectedProcedure.mutation(async ({ ctx }) => {
-    const user = await db.getUserByWalletAddress(ctx.user.walletAddress);
+    const user = await db.getUserByWalletAddress(ctx.user.wallet_address);
     if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
 
     const config = await db.getBotConfig(user.id);
@@ -87,7 +87,7 @@ export const botRouter = router({
    * Stop bot
    */
   stop: protectedProcedure.mutation(async ({ ctx }) => {
-    const user = await db.getUserByWalletAddress(ctx.user.walletAddress);
+    const user = await db.getUserByWalletAddress(ctx.user.wallet_address);
     if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
 
     const config = await db.getBotConfig(user.id);
@@ -125,7 +125,7 @@ export const botRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      const user = await db.getUserByWalletAddress(ctx.user.walletAddress);
+      const user = await db.getUserByWalletAddress(ctx.user.wallet_address);
       if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
 
       const logs = await db.getBotLogs(user.id, {
@@ -148,7 +148,7 @@ export const botRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      const user = await db.getUserByWalletAddress(ctx.user.walletAddress);
+      const user = await db.getUserByWalletAddress(ctx.user.wallet_address);
       if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
 
       const trades = await db.getTrades(user.id, {
@@ -163,7 +163,7 @@ export const botRouter = router({
    * Get bot statistics
    */
   getStatistics: protectedProcedure.query(async ({ ctx }) => {
-    const user = await db.getUserByWalletAddress(ctx.user.walletAddress);
+    const user = await db.getUserByWalletAddress(ctx.user.wallet_address);
     if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
 
     const botManager = BotManager.getInstance();

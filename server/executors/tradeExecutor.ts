@@ -23,7 +23,7 @@ export class TradeExecutor {
   
   constructor() {
     // Initialize provider
-    const rpcUrls = (process.env.POLYGON_RPC_URLS || 'https://polygon-rpc.com').split(',');
+    const rpcUrls = (process.env.POLYGON_RPC_URLS || 'https://polygon-rpc.com' ).split(',');
     this.provider = new ethers.JsonRpcProvider(rpcUrls[0]);
     
     // Initialize bot wallet (for signing transactions)

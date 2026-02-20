@@ -6,8 +6,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { Check, Loader2, Sparkles } from "lucide-react";
 import { trpc } from "@/lib/trpc";
-import { SubscriptionFlow } from "@/components/SubscriptionFlow";
-import { useSubscription } from "@/hooks/useSubscription";
+import { SubscriptionFlow } from "../components/SubscriptionFlow";
+import { useSubscription } from "../hooks/useSubscription";
 
 const tiers = [
   {

@@ -10,14 +10,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { httpBatchLink } from '@trpc/client';
 import superjson from 'superjson';
 import { trpc } from './lib/trpc';
-import { config } from './lib/wagmi.ts';
+import { config } from './lib/wagmi';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient( );
 
 const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({
-      url: 'http://localhost:3000/api/trpc',
+      url: '/api/trpc',
       headers( ) {
         const token = localStorage.getItem('wallet_token');
         return {
@@ -25,6 +25,12 @@ const trpcClient = trpc.createClient({
         };
       },
       transformer: superjson,
+      fetch(input, init) {
+        return globalThis.fetch(input, {
+          ...(init ?? {}),
+          credentials: "include",
+        });
+      },
     }),
   ],
 });

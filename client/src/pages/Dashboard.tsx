@@ -6,9 +6,9 @@ import { TrendingUp, TrendingDown, DollarSign, Activity, BarChart3, Clock } from
 import { trpc } from "@/lib/trpc";
 import { useAccount } from "wagmi";
 import { Link, useLocation } from "wouter";
-import { BotStatusCard } from "@/components/BotStatusCard";
-import { SubscriptionBadge } from "@/components/SubscriptionBadge";
-import { USDCBalanceCard } from "@/components/USDCBalanceCard";
+import { BotStatusCard } from "../components/BotStatusCard";
+import { SubscriptionBadge } from "../components/SubscriptionBadge";
+import { USDCBalanceCard } from "../components/USDCBalanceCard";
 
 export default function Dashboard() {
   const { address } = useAccount();
@@ -237,12 +237,15 @@ export default function Dashboard() {
             Monitor your automated trading performance
           </p>
         </div>
-        <SubscriptionBadge tier={subscription?.tier} expiresAt={subscription?.expiresAt} />
+        <SubscriptionBadge 
+        tier={subscription?.tier} 
+        expiresAt={subscription?.expiresAt != null ? new Date(subscription.expiresAt * 1000) : undefined}
+      />
       </div>
 
       {/* Top Cards */}
-      <div className="grid gap-6 md:grid-cols-3">
-        <USDCBalanceCard walletAddress={address!} />
+      <div className="grid gap-4 md:grid-cols-3">
+        {address && <USDCBalanceCard walletAddress={address} />}
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -283,6 +286,28 @@ export default function Dashboard() {
 
       {/* Bot Control */}
       <BotStatusCard />
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <Link href="/trades">
+          <Button variant="outline" className="w-full h-20 flex flex-col gap-2">
+            <BarChart3 className="h-5 w-5" />
+            <span>View All Trades</span>
+          </Button>
+        </Link>
+        <Link href="/positions">
+          <Button variant="outline" className="w-full h-20 flex flex-col gap-2">
+            <Activity className="h-5 w-5" />
+            <span>Open Positions</span>
+          </Button>
+        </Link>
+        <Link href="/logs">
+          <Button variant="outline" className="w-full h-20 flex flex-col gap-2">
+            <Clock className="h-5 w-5" />
+            <span>Activity Logs</span>
+          </Button>
+        </Link>
+      </div>
+
 
       {/* Recent Trades */}
       <Card>

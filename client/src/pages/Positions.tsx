@@ -1,165 +1,186 @@
-import DashboardLayout from "@/components/DashboardLayout";
+import { useAccount } from "wagmi";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TrendingUp, TrendingDown, ExternalLink } from "lucide-react";
 import { trpc } from "@/lib/trpc";
-import { X, TrendingUp, TrendingDown } from "lucide-react";
-import { toast } from "sonner";
+import { Link } from "wouter";
 
 export default function Positions() {
-  const { data: positions, refetch } = trpc.positions.list.useQuery();
-  const closePosition = trpc.positions.close.useMutation({
-    onSuccess: () => {
-      toast.success("Position closed successfully");
-      refetch();
-    },
-    onError: (error) => {
-      toast.error(`Failed to close position: ${error.message}`);
-    },
-  });
-
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleString();
-  };
-
-  const formatCurrency = (value: number) => {
-    return `$${value.toFixed(2)}`;
-  };
-
-  const formatPercent = (value: number) => {
-    return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`;
-  };
-
-  const totalUnrealizedPnl = positions?.reduce((sum, p) => sum + p.unrealizedPnl, 0) || 0;
-
-  return (
-    <DashboardLayout>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold">Open Positions</h2>
-            <p className="text-sm text-muted-foreground">Manage your active positions</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <div className="text-sm text-muted-foreground">Total Unrealized P&L</div>
-              <div className={`text-xl font-bold \${
-                totalUnrealizedPnl > 0 ? 'text-green-500' : 
-                totalUnrealizedPnl < 0 ? 'text-red-500' : ''
-              }`}>
-                {formatCurrency(totalUnrealizedPnl)}
-              </div>
-            </div>
-          </div>
-        </div>
-
+  const { address, isConnected } = useAccount();
+  
+  const { data: positions, isLoading } = trpc.bot.getTrades.useQuery(
+    { limit: 100, offset: 0 },
+    { 
+      enabled: isConnected,
+      select: (data) => data.filter(trade => trade.status === 'open')
+    }
+  );
+  
+  if (!isConnected) {
+    return (
+      <div className="container mx-auto p-6">
         <Card>
-          <CardHeader>
-            <CardTitle>Active Positions</CardTitle>
-            <CardDescription>{positions?.length || 0} open positions</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Market</TableHead>
-                    <TableHead>Strategy</TableHead>
-                    <TableHead>Side</TableHead>
-                    <TableHead className="text-right">Entry Price</TableHead>
-                    <TableHead className="text-right">Current Price</TableHead>
-                    <TableHead className="text-right">Quantity</TableHead>
-                    <TableHead className="text-right">Entry Value</TableHead>
-                    <TableHead className="text-right">Current Value</TableHead>
-                    <TableHead className="text-right">Unrealized P&L</TableHead>
-                    <TableHead className="text-right">P&L %</TableHead>
-                    <TableHead>Opened</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {!positions || positions.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={12} className="text-center text-muted-foreground py-8">
-                        No open positions
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    positions.map((position) => {
-                      const isProfitable = position.unrealizedPnl > 0;
-                      return (
-                        <TableRow key={position.id}>
-                          <TableCell className="max-w-[300px]">
-                            <div className="truncate" title={position.marketQuestion}>
-                              {position.marketQuestion}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="capitalize">
-                              {position.strategy.replace('_', ' ')}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary" className="uppercase">
-                              {position.side}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right font-mono text-sm">
-                            \${position.entryPrice.toFixed(4)}
-                          </TableCell>
-                          <TableCell className="text-right font-mono text-sm">
-                            <div className="flex items-center justify-end gap-1">
-                              \${position.currentPrice.toFixed(4)}
-                              {isProfitable ? (
-                                <TrendingUp className="h-3 w-3 text-green-500" />
-                              ) : (
-                                <TrendingDown className="h-3 w-3 text-red-500" />
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right font-mono text-sm">
-                            {position.quantity.toFixed(2)}
-                          </TableCell>
-                          <TableCell className="text-right font-mono text-sm">
-                            {formatCurrency(position.entryValue)}
-                          </TableCell>
-                          <TableCell className="text-right font-mono text-sm">
-                            {formatCurrency(position.currentValue)}
-                          </TableCell>
-                          <TableCell className={`text-right font-mono text-sm font-bold \${
-                            isProfitable ? 'text-green-500' : 'text-red-500'
-                          }`}>
-                            {formatCurrency(position.unrealizedPnl)}
-                          </TableCell>
-                          <TableCell className={`text-right font-mono text-sm \${
-                            isProfitable ? 'text-green-500' : 'text-red-500'
-                          }`}>
-                            {formatPercent(position.unrealizedPnlPct)}
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {formatDate(position.openedAt)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => closePosition.mutate({ positionId: position.id })}
-                              disabled={closePosition.isPending}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+          <CardContent className="pt-6">
+            <p className="text-center text-muted-foreground">
+              Please connect your wallet to view positions
+            </p>
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+    );
+  }
+  
+  // Calculate statistics
+  const totalValue = positions?.reduce((sum, pos) => sum + parseFloat(pos.entryValue || "0"), 0) || 0;
+  const totalUnrealizedPnL = positions?.reduce((sum, pos) => sum + parseFloat(pos.pnl || "0"), 0) || 0;
+  
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Open Positions</h1>
+          <p className="text-muted-foreground">Monitor your active trades</p>
+        </div>
+        <Link href="/dashboard">
+          <Button variant="outline">Back to Dashboard</Button>
+        </Link>
+      </div>
+      
+      {/* Statistics Cards */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Open Positions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{positions?.length || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              Active trades
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Value</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${totalValue.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">
+              Invested capital
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Unrealized P&L</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${totalUnrealizedPnL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              {totalUnrealizedPnL >= 0 ? '+' : ''} ${totalUnrealizedPnL.toFixed(2)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Current profit/loss
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Positions Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Active Positions</CardTitle>
+          <CardDescription>
+            {positions?.length || 0} open position{positions?.length !== 1 ? 's' : ''}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="text-center py-8 text-muted-foreground">Loading positions...</div>
+          ) : !positions || positions.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No open positions</p>
+              <p className="text-sm mt-2">Start the bot to begin trading</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Opened</TableHead>
+                    <TableHead>Market</TableHead>
+                    <TableHead>Strategy</TableHead>
+                    <TableHead>Side</TableHead>
+                    <TableHead>Entry Price</TableHead>
+                    <TableHead>Quantity</TableHead>
+                    <TableHead>Value</TableHead>
+                    <TableHead>Unrealized P&L</TableHead>
+                    <TableHead>Tx</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {positions.map((position) => {
+                    const pnl = parseFloat(position.pnl || "0");
+                    const isProfit = pnl > 0;
+                    
+                    return (
+                      <TableRow key={position.id}>
+                        <TableCell className="font-medium">
+                          {new Date(position.entryTime).toLocaleDateString()}
+                            
+
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(position.entryTime).toLocaleTimeString()}
+                          </span>
+                        </TableCell>
+                        <TableCell className="max-w-xs">
+                          <div className="truncate">{position.marketQuestion}</div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {position.strategy.replace('_', ' ').toUpperCase()}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={position.side === 'yes' ? 'default' : 'secondary'}>
+                            {position.side.toUpperCase()}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>${parseFloat(position.entryPrice || "0").toFixed(3)}</TableCell>
+                        <TableCell>{parseFloat(position.quantity || "0").toFixed(2)}</TableCell>
+                        <TableCell>${parseFloat(position.entryValue || "0").toFixed(2)}</TableCell>
+                        <TableCell>
+                          <div className={`flex items-center gap-1 font-bold ${isProfit ? 'text-green-500' : 'text-red-500'}`}>
+                            {isProfit ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                            {isProfit ? '+' : ''} ${pnl.toFixed(2)}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {position.txHash && (
+                            <a
+                              href={`https://polygonscan.com/tx/${position.txHash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-primary hover:underline"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              View
+                            </a>
+                           )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }

@@ -1,44 +1,41 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
-import { verifySessionToken } from "../auth/walletAuth";
+import type { User } from "../../drizzle/schema";
+import { verifyToken } from "../auth/jwt";
+import * as db from "../db";
 
-export async function createContext({ req, res }: CreateExpressContextOptions) {
-  // Extract token from Authorization header or cookie
-  const authHeader = req.headers.authorization;
-  const token = authHeader?.startsWith("Bearer ")
-    ? authHeader.substring(7)
-    : req.cookies?.session;
+export type TrpcContext = {
+  req: CreateExpressContextOptions["req"];
+  res: CreateExpressContextOptions["res"];
+  user: User | null;
+};
 
-  console.log('[Context] Creating context:', {
-    hasAuthHeader: !!authHeader,
-    hasCookie: !!req.cookies?.session,
-    hasToken: !!token,
-    tokenPreview: token ? `${token.substring(0, 10)}...` : 'none',
-  });
+export async function createContext(
+  opts: CreateExpressContextOptions
+): Promise<TrpcContext> {
+  let user: User | null = null;
 
-  let user: { walletAddress: string } | null = null;
-
-  if (token) {
-    try {
-      const walletAddress = await verifySessionToken(token);
-      console.log('[Context] Token verified, walletAddress:', walletAddress);
-      if (walletAddress) {
-        user = { walletAddress };
+  try {
+    // Extract JWT token from Authorization header
+    const authHeader = opts.req.headers.authorization;
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      const payload = verifyToken(token);
+      
+      if (payload && payload.wallet_address) {
+        // Load full user from database
+        user = await db.getUserByWalletAddress(payload.wallet_address);
       }
-    } catch (error) {
-      console.error("[Context] Token verification failed:", error);
-      // Don't throw or send response - just set user to null
     }
-  } else {
-    console.log('[Context] No token found in request');
+  } catch (error) {
+    // Authentication is optional for public procedures.
+    console.error('[Context] Authentication error:', error);
+    user = null;
   }
 
-  console.log('[Context] Final user:', user);
-
   return {
-    req,
-    res,
+    req: opts.req,
+    res: opts.res,
     user,
   };
 }
-
-export type TrpcContext = Awaited<ReturnType<typeof createContext>>;
