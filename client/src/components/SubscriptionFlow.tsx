@@ -147,7 +147,17 @@ export function SubscriptionFlow({ tier, onComplete, onCancel }: SubscriptionFlo
 
   return (
     <Dialog open={true} onOpenChange={onCancel}>
-      <DialogContent className="bg-[#18181b] border-[#27272a] text-white">
+      <DialogContent
+        className="
+          bg-[#18181b]
+          border-[#27272a]
+          text-white
+          max-w-[30vw]
+          w-full
+          ring-4 ring-blue-500/30
+          shadow-lg shadow-blue-500/30
+        "
+      >
         <DialogHeader>
           <DialogTitle>Subscribe to {tierName} Plan</DialogTitle>
           <DialogDescription className="text-gray-400">

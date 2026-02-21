@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useWalletAuth } from '../hooks/useWalletAuth';
 
@@ -10,16 +10,24 @@ export default function Login() {
     authError, 
     authenticateWallet 
   } = useWalletAuth();
+
+  const hasTriggered = useRef(false);
   
-  // Auto-authenticate when wallet connects
+  // Auto-authenticate when wallet connects — only once per connection
   useEffect(() => {
     console.log('[Login] Wallet state changed', { isConnected, isAuthenticating, address });
     
-    if (isConnected && !isAuthenticating && address) {
+    if (isConnected && address && !hasTriggered.current) {
+      hasTriggered.current = true;
       console.log('[Login] Triggering authentication');
       authenticateWallet();
     }
-  }, [isConnected, address, isAuthenticating]);
+
+    // Reset the ref when wallet disconnects
+    if (!isConnected) {
+      hasTriggered.current = false;
+    }
+  }, [isConnected, address]);
   
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">

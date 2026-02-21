@@ -27,7 +27,7 @@ export async function verifyWalletSignature(
  * Create a session JWT token
  */
 export async function createSessionToken(walletAddress: string): Promise<string> {
-  const token = await new SignJWT({ walletAddress })
+  const token = await new SignJWT({ wallet_address: walletAddress })  // was: { walletAddress }
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('30d')

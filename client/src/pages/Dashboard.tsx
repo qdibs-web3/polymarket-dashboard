@@ -14,48 +14,39 @@ export default function Dashboard() {
   const { address } = useAccount();
   const [, setLocation] = useLocation();
 
-  // Check subscription status
   const { data: subscription } = trpc.subscription.getStatus.useQuery(
     { walletAddress: address! },
     { enabled: !!address }
   );
 
-  // Get bot statistics
   const { data: stats } = trpc.bot.getStatistics.useQuery(
     undefined,
     { refetchInterval: 10000, enabled: !!address && subscription?.isActive }
   );
 
-  // Get recent trades
   const { data: recentTrades } = trpc.bot.getTrades.useQuery(
     { limit: 5, offset: 0 },
     { enabled: !!address && subscription?.isActive }
   );
 
-  // Get bot config
-  const { data: config } = trpc.config.get.useQuery(
-    undefined,
-    { enabled: !!address && subscription?.isActive }
-  );
-
   const isSubscribed = subscription?.isActive ?? false;
 
-  // Non-subscriber view
+  /* ---------------- NON SUBSCRIBER VIEW ---------------- */
+
   if (!isSubscribed) {
     return (
-      <div className="container mx-auto p-6 space-y-8">
+      <div className="container mx-auto p-6 space-y-10">
         <div className="text-center space-y-4 py-12">
-          <h1 className="text-4xl font-bold gradient-text">
-            Welcome to Polymarket Trading Bot
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold gradient-text tracking-tight">
+            Welcome to the Predictive Apex
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Automated Bitcoin 15-minute strategy trading on Polymarket
           </p>
         </div>
 
-        {/* Features Section */}
         <div className="grid gap-6 md:grid-cols-3">
-          <Card className="glow-on-hover">
+          <Card className="glow-on-hover transition-all duration-300 hover:bg-blue-500/5 hover:shadow-[0_0_25px_rgba(59,130,246,0.35)]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Activity className="h-5 w-5 text-primary" />
@@ -69,7 +60,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="glow-on-hover">
+          <Card className="glow-on-hover transition-all duration-300 hover:bg-blue-500/5 hover:shadow-[0_0_25px_rgba(59,130,246,0.35)]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5 text-primary" />
@@ -83,7 +74,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="glow-on-hover">
+          <Card className="glow-on-hover transition-all duration-300 hover:bg-blue-500/5 hover:shadow-[0_0_25px_rgba(59,130,246,0.35)]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <DollarSign className="h-5 w-5 text-primary" />
@@ -98,125 +89,124 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Pricing Tiers */}
-        <div className="text-center space-y-4 pt-8">
+        <div className="text-center space-y-2">
           <h2 className="text-3xl font-bold">Choose Your Plan</h2>
-          <p className="text-muted-foreground">
-            Subscribe to start automated trading
-          </p>
+          <p className="text-muted-foreground">Subscribe to start automated trading</p>
         </div>
 
         <div className="grid gap-6 md:grid-cols-3 max-w-5xl mx-auto">
-          {/* Basic Tier */}
-          <Card className="glow-on-hover">
+          {/* BASIC */}
+          <Card className="flex flex-col glow-on-hover transition-all duration-300 hover:bg-blue-500/5 hover:shadow-[0_0_25px_rgba(59,130,246,0.35)]">
             <CardHeader>
-              <CardTitle>Basic</CardTitle>
-              <CardDescription>
-                <span className="text-3xl font-bold">$60</span>
-                <span className="text-muted-foreground">/month</span>
-              </CardDescription>
+              <Badge className="w-fit mx-auto">Get Started</Badge>
+
+              <div className="flex items-baseline justify-center gap-2">
+                <CardTitle>Basic</CardTitle>
+                <div>
+                  <span className="text-3xl font-bold">$60</span>
+                  <span className="text-muted-foreground text-sm"> /month</span>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-center gap-2">
-                  <span className="text-primary">✓</span>
-                  Core bot strategies
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-primary">✓</span>
-                  Limited markets
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-primary">✓</span>
-                  Basic analytics
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-primary">✓</span>
-                  Community support
-                </li>
+
+            <CardContent className="flex flex-col flex-1">
+              <ul className="grid gap-2 text-sm flex-1">
+                {[
+                  "Core bot strategies",
+                  "Limited markets",
+                  "Basic analytics",
+                  "Community support",
+                  "Early Access"
+                ].map((item) => (
+                  <li key={item} className="flex items-center gap-2">
+                    <span className="text-primary">✓</span>
+                    {item}
+                  </li>
+                ))}
               </ul>
-              <Button className="w-full" onClick={() => setLocation("/subscribe")}>
+
+              <Button
+                className="mt-6 w-full bg-blue-500 hover:shadow-[0_0_20px_rgba(59,130,246,0.6)]"
+                onClick={() => setLocation("/subscribe")}
+              >
                 Get Started
               </Button>
             </CardContent>
           </Card>
 
-          {/* Pro Tier */}
-          <Card className="glow-on-hover border-primary">
-            <CardHeader>
-              <Badge className="w-fit mb-2">Popular</Badge>
-              <CardTitle>Pro</CardTitle>
-              <CardDescription>
-                <span className="text-3xl font-bold">$150</span>
-                <span className="text-muted-foreground">/month</span>
-              </CardDescription>
+          {/* PRO */}
+          <Card className="flex flex-col border-primary glow-on-hover transition-all duration-300 hover:bg-blue-500/10 hover:shadow-[0_0_30px_rgba(59,130,246,0.45)]">
+            <CardHeader className="space-y-2">
+              <Badge className="w-fit mx-auto">Most Popular</Badge>
+
+              <div className="flex items-baseline justify-center gap-2">
+                <CardTitle>Pro</CardTitle>
+                <div>
+                  <span className="text-3xl font-bold">$150</span>
+                  <span className="text-muted-foreground text-sm"> /month</span>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-center gap-2">
-                  <span className="text-primary">✓</span>
-                  Full strategy access
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-primary">✓</span>
-                  Higher execution limits
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-primary">✓</span>
-                  Advanced analytics
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-primary">✓</span>
-                  Priority support
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-primary">✓</span>
-                  Risk management
-                </li>
+
+            <CardContent className="flex flex-col flex-1">
+              <ul className="grid gap-2 text-sm flex-1">
+                {[
+                  "Full strategy access",
+                  "Higher execution limits",
+                  "Advanced analytics",
+                  "Priority support",
+                  "Risk management",
+                ].map((item) => (
+                  <li key={item} className="flex items-center gap-2">
+                    <span className="text-primary">✓</span>
+                    {item}
+                  </li>
+                ))}
               </ul>
-              <Button className="w-full" onClick={() => setLocation("/subscribe")}>
+
+              <Button
+                className="mt-6 w-full hover:shadow-[0_0_25px_rgba(59,130,246,0.7)]"
+                onClick={() => setLocation("/subscribe")}
+              >
                 Get Started
               </Button>
             </CardContent>
           </Card>
 
-          {/* Premium Tier */}
-          <Card className="glow-on-hover">
+          {/* PREMIUM */}
+          <Card className="flex flex-col glow-on-hover transition-all duration-300 hover:bg-blue-500/5 hover:shadow-[0_0_25px_rgba(59,130,246,0.35)]">
             <CardHeader>
-              <CardTitle>Premium</CardTitle>
-              <CardDescription>
-                <span className="text-3xl font-bold">$300</span>
-                <span className="text-muted-foreground">/month</span>
-              </CardDescription>
+              <Badge className="w-fit mx-auto">Pro Trader</Badge>
+
+              <div className="flex items-baseline justify-center gap-2">
+                <CardTitle>Premium</CardTitle>
+                <div>
+                  <span className="text-3xl font-bold">$300</span>
+                  <span className="text-muted-foreground text-sm"> /month</span>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-center gap-2">
-                  <span className="text-primary">✓</span>
-                  Highest priority
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-primary">✓</span>
-                  Advanced strategies
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-primary">✓</span>
-                  Custom configuration
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-primary">✓</span>
-                  API access
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-primary">✓</span>
-                  Dedicated support
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-primary">✓</span>
-                  Early features
-                </li>
+
+            <CardContent className="flex flex-col flex-1">
+              <ul className="grid gap-2 text-sm flex-1">
+                {[
+                  "Highest priority",
+                  "Advanced strategies",
+                  "Custom configuration",
+                  "Dedicated support",
+                  "Early features",
+                ].map((item) => (
+                  <li key={item} className="flex items-center gap-2">
+                    <span className="text-primary">✓</span>
+                    {item}
+                  </li>
+                ))}
               </ul>
-              <Button className="w-full" onClick={() => setLocation("/subscribe")}>
+
+              <Button
+                className="mt-6 w-full hover:shadow-[0_0_20px_rgba(59,130,246,0.6)]"
+                onClick={() => setLocation("/subscribe")}
+              >
                 Get Started
               </Button>
             </CardContent>
@@ -226,10 +216,10 @@ export default function Dashboard() {
     );
   }
 
-  // Subscriber dashboard view
+  /* ---------------- SUBSCRIBER VIEW ---------------- */
+
   return (
     <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
@@ -237,155 +227,45 @@ export default function Dashboard() {
             Monitor your automated trading performance
           </p>
         </div>
-        <SubscriptionBadge 
-        tier={subscription?.tier} 
-        expiresAt={subscription?.expiresAt != null ? new Date(subscription.expiresAt * 1000) : undefined}
-      />
+
+        {subscription && (
+          <SubscriptionBadge tier={subscription.tier} expiresAt={subscription.expiresAt} />
+        )}
       </div>
 
-      {/* Top Cards */}
       <div className="grid gap-4 md:grid-cols-3">
-        {address && <USDCBalanceCard walletAddress={address} />}
-        
+        {address && <USDCBalanceCard />}
+
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's P&L</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          <CardHeader>
+            <CardTitle className="text-sm">Today's P&amp;L</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${
-              (stats?.todayPnL ?? 0) >= 0 ? 'text-green-500' : 'text-red-500'
-            }`}>
+            <div
+              className={`text-2xl font-bold ${
+                (stats?.todayPnL ?? 0) >= 0 ? "text-green-500" : "text-red-500"
+              }`}
+            >
               ${(stats?.todayPnL ?? 0).toFixed(2)}
             </div>
-            <p className="text-xs text-muted-foreground">
-              {stats?.todayTrades ?? 0} trades today
-            </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Bot Status</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+          <CardHeader>
+            <CardTitle className="text-sm">Bot Status</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {stats?.botRunning ? (
-                <Badge variant="default">Running</Badge>
-              ) : (
-                <Badge variant="secondary">Stopped</Badge>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {stats?.openPositions ?? 0} open positions
-            </p>
+            {stats?.botRunning ? (
+              <Badge>Running</Badge>
+            ) : (
+              <Badge variant="secondary">Stopped</Badge>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Bot Control */}
       <BotStatusCard />
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <Link href="/trades">
-          <Button variant="outline" className="w-full h-20 flex flex-col gap-2">
-            <BarChart3 className="h-5 w-5" />
-            <span>View All Trades</span>
-          </Button>
-        </Link>
-        <Link href="/positions">
-          <Button variant="outline" className="w-full h-20 flex flex-col gap-2">
-            <Activity className="h-5 w-5" />
-            <span>Open Positions</span>
-          </Button>
-        </Link>
-        <Link href="/logs">
-          <Button variant="outline" className="w-full h-20 flex flex-col gap-2">
-            <Clock className="h-5 w-5" />
-            <span>Activity Logs</span>
-          </Button>
-        </Link>
-      </div>
-
-
-      {/* Recent Trades */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Trades</CardTitle>
-          <CardDescription>Your latest trading activity</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {!recentTrades || recentTrades.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No trades yet. Start the bot to begin trading.
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {recentTrades.map((trade: any) => {
-                const pnl = trade.pnl ? parseFloat(trade.pnl) : 0;
-                const isProfitable = pnl >= 0;
-                
-                return (
-                  <div
-                    key={trade.id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
-                  >
-                    <div className="flex items-center gap-4">
-                      {trade.side === "yes" ? (
-                        <TrendingUp className="h-5 w-5 text-green-500" />
-                      ) : (
-                        <TrendingDown className="h-5 w-5 text-red-500" />
-                      )}
-                      <div>
-                        <p className="font-medium">{trade.marketQuestion}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {trade.strategy} • {trade.side.toUpperCase()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className={`font-medium ${
-                        isProfitable ? 'text-green-500' : 'text-red-500'
-                      }`}>
-                        {isProfitable ? '+' : ''}${pnl.toFixed(2)}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        <Clock className="inline h-3 w-3 mr-1" />
-                        {new Date(trade.entryTime).toLocaleString()}
-                      </p>
-                    </div>
-                    <Badge variant={trade.status === "open" ? "default" : "secondary"}>
-                      {trade.status}
-                    </Badge>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="glow-on-hover cursor-pointer" onClick={() => setLocation("/config")}>
-          <CardHeader>
-            <CardTitle className="text-lg">Bot Configuration</CardTitle>
-            <CardDescription>
-              Adjust trading parameters and risk settings
-            </CardDescription>
-          </CardHeader>
-        </Card>
-
-        <Card className="glow-on-hover cursor-pointer" onClick={() => setLocation("/trades")}>
-          <CardHeader>
-            <CardTitle className="text-lg">View All Trades</CardTitle>
-            <CardDescription>
-              Complete trading history and analytics
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
     </div>
   );
 }

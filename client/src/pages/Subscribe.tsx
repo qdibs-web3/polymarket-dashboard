@@ -138,11 +138,11 @@ export default function Subscribe() {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
           {tiers.map((tier) => (
             <Card
               key={tier.id}
-              className={`relative bg-[#18181b] border-[#27272a] hover:border-blue-500/50 transition-all duration-300 ${
+              className={`relative bg-[#18181b] border-[#27272a] hover:border-blue-500/50 transition-all duration-300 flex flex-col ${
                 tier.popular ? "ring-2 ring-blue-500 scale-105" : ""
               }`}
             >
@@ -151,23 +151,28 @@ export default function Subscribe() {
                   <Badge className="bg-blue-500 text-white">Most Popular</Badge>
                 </div>
               )}
-              
+
               <CardHeader>
+                <div className="h-6 flex items-center">
+                  {tier.popular && (
+                    <span className="text-xs font-semibold text-blue-400 uppercase tracking-wide">Popular</span>
+                  )}
+                </div>
                 <CardTitle className="text-2xl">{tier.name}</CardTitle>
-                <CardDescription className="text-gray-400">
+                <div className="mt-2">
+                  <span className="text-4xl font-bold">${tier.price}</span>
+                  <span className="text-gray-400 text-sm"> USDC / month</span>
+                </div>
+                <CardDescription className="text-gray-400 text-sm pt-1">
                   {tier.description}
                 </CardDescription>
-                <div className="mt-4">
-                  <span className="text-4xl font-bold">${tier.price}</span>
-                  <span className="text-gray-400"> USDC / month</span>
-                </div>
               </CardHeader>
 
-              <CardContent className="space-y-4">
+              <CardContent className="flex-1 space-y-4">
                 <div className="space-y-2">
                   {tier.features.map((feature, idx) => (
                     <div key={idx} className="flex items-start gap-2">
-                      <Check className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                      <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
                       <span className="text-sm text-gray-300">{feature}</span>
                     </div>
                   ))}
@@ -185,7 +190,7 @@ export default function Subscribe() {
                 </div>
               </CardContent>
 
-              <CardFooter>
+              <CardFooter className="mt-auto pt-4">
                 <Button
                   className="w-full"
                   variant={tier.popular ? "default" : "outline"}

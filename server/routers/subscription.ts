@@ -11,9 +11,31 @@ const SUBSCRIPTION_ABI = [
   "function getTierPrice(uint8 tier) external pure returns (uint256)",
 ];
 
-// Contract addresses (update after deployment)
-const SUBSCRIPTION_CONTRACT = process.env.SUBSCRIPTION_CONTRACT_ADDRESS || "";
-const POLYGON_RPC = process.env.POLYGON_RPC_URL || "https://polygon-rpc.com";
+// Contract addresses and RPC — environment-aware (Amoy testnet vs Polygon Mainnet)
+const IS_DEV = process.env.NODE_ENV !== "production";
+
+const SUBSCRIPTION_CONTRACT = IS_DEV
+  ? (process.env.SUBSCRIPTION_CONTRACT_ADDRESS_AMOY || process.env.SUBSCRIPTION_CONTRACT_ADDRESS || "")
+  : (process.env.SUBSCRIPTION_CONTRACT_ADDRESS || "");
+
+const POLYGON_RPC = IS_DEV
+  ? (process.env.POLYGON_RPC_URL_AMOY || "https://rpc-amoy.polygon.technology")
+  : (process.env.POLYGON_RPC_URL || "https://polygon-bor-rpc.publicnode.com");
+
+// ethers.Network.from() — prevents ENS lookups on testnets (staticNetwork requires typed Network object in ethers v6)
+const NETWORK_CONFIG = IS_DEV
+  ? ethers.Network.from({ chainId: 80002, name: "polygon-amoy" })
+  : ethers.Network.from({ chainId: 137, name: "polygon" });
+
+// Default no-subscription response
+const NO_SUBSCRIPTION = {
+  tier: 0,
+  tierName: "None",
+  expiresAt: null,
+  lastPayment: null,
+  isActive: false,
+  isExpired: false,
+};
 
 // Tier enum matching smart contract
 enum Tier {
@@ -34,37 +56,33 @@ export const subscriptionRouter = router({
       })
     )
     .query(async ({ input }) => {
-      try {
-        if (!SUBSCRIPTION_CONTRACT) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Subscription contract not configured",
-          });
-        }
+      // If no contract deployed yet, return default no-subscription state
+      if (!SUBSCRIPTION_CONTRACT) {
+        return NO_SUBSCRIPTION;
+      }
 
-        const provider = new ethers.JsonRpcProvider(POLYGON_RPC);
+      try {
+        const provider = new ethers.JsonRpcProvider(POLYGON_RPC, NETWORK_CONFIG, { staticNetwork: NETWORK_CONFIG });
         const contract = new ethers.Contract(
           SUBSCRIPTION_CONTRACT,
           SUBSCRIPTION_ABI,
           provider
         );
 
-        const subscription = await contract.getSubscription(input.walletAddress);
+        const subscription = await contract.getSubscription(ethers.getAddress(input.walletAddress));
 
         return {
-          tier: Number(subscription[0]), // tier
+          tier: Number(subscription[0]),
           tierName: getTierName(Number(subscription[0])),
-          expiresAt: new Date(Number(subscription[1]) * 1000), // expiresAt
-          lastPayment: new Date(Number(subscription[2]) * 1000), // lastPayment
-          isActive: subscription[3], // isActive
-          isExpired: subscription[4], // isExpired
+          expiresAt: new Date(Number(subscription[1]) * 1000),
+          lastPayment: new Date(Number(subscription[2]) * 1000),
+          isActive: subscription[3],
+          isExpired: subscription[4],
         };
       } catch (error: any) {
-        console.error("[Subscription] Error getting status:", error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to get subscription status",
-        });
+        // Contract call failed (user has no subscription or contract unreachable)
+        console.error("[Subscription] Error getting status:", error.shortMessage || error.message);
+        return NO_SUBSCRIPTION;
       }
     }),
 
@@ -78,7 +96,7 @@ export const subscriptionRouter = router({
           id: Tier.BASIC,
           name: "Basic",
           price: 60,
-          priceUSDC: "60000000", // 60 USDC (6 decimals)
+          priceUSDC: "60000000",
           duration: 30,
           features: [
             "Access to core bot strategies",
@@ -96,7 +114,7 @@ export const subscriptionRouter = router({
           id: Tier.PRO,
           name: "Pro",
           price: 150,
-          priceUSDC: "150000000", // 150 USDC (6 decimals)
+          priceUSDC: "150000000",
           duration: 30,
           features: [
             "Full strategy access",
@@ -115,7 +133,7 @@ export const subscriptionRouter = router({
           id: Tier.PREMIUM,
           name: "Premium",
           price: 300,
-          priceUSDC: "300000000", // 300 USDC (6 decimals)
+          priceUSDC: "300000000",
           duration: 30,
           features: [
             "Highest execution priority / limits",
@@ -131,7 +149,7 @@ export const subscriptionRouter = router({
           },
         },
       ],
-      usdcAddress: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", // Polygon USDC
+      usdcAddress: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
       subscriptionContract: SUBSCRIPTION_CONTRACT,
     };
   }),
@@ -148,7 +166,7 @@ export const subscriptionRouter = router({
     )
     .mutation(async ({ input }) => {
       try {
-        const provider = new ethers.JsonRpcProvider(POLYGON_RPC);
+        const provider = new ethers.JsonRpcProvider(POLYGON_RPC, NETWORK_CONFIG, { staticNetwork: NETWORK_CONFIG });
         const receipt = await provider.getTransactionReceipt(input.txHash);
 
         if (!receipt) {
@@ -165,7 +183,6 @@ export const subscriptionRouter = router({
           });
         }
 
-        // Log transaction in database
         await db.logSubscriptionTransaction({
           walletAddress: input.walletAddress,
           txHash: input.txHash,

@@ -16,7 +16,6 @@ import {
   Settings,
   LogOut,
   User,
-  Activity,
 } from "lucide-react";
 import { useEffect } from "react";
 
@@ -28,7 +27,6 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Trades", href: "/trades", icon: TrendingUp },
   { name: "Positions", href: "/positions", icon: BarChart3 },
-  { name: "Markets", href: "/markets", icon: Activity },
   { name: "Configuration", href: "/config", icon: Settings },
 ];
 
@@ -63,8 +61,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <aside className="w-64 bg-[#18181b] border-r border-[#27272a] flex flex-col">
         {/* Logo */}
         <div className="p-6 border-b border-[#27272a]">
-          <h1 className="text-xl font-bold text-white">Polymarket Bot</h1>
-          <p className="text-sm text-gray-400 mt-1">Trading Dashboard</p>
+        <h1 className="text-xl font-bold text-white drop-shadow-[0_0_12px_rgba(59,130,246,0.9)]">
+          Predictive Apex
+        </h1>
+        <p className="text-sm text-gray-400 mt-1">Trading Dashboard</p>
         </div>
 
         {/* Navigation */}
@@ -72,15 +72,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           {navigation.map((item) => {
             const Icon = item.icon;
             const isActive = location === item.href || location === item.href.replace("/dashboard", "/");
-            
+
             return (
               <button
                 key={item.name}
                 onClick={() => setLocation(item.href)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                   isActive
-                    ? "bg-blue-500/10 text-blue-400"
-                    : "text-gray-400 hover:bg-[#27272a] hover:text-white"
+                    ? "bg-blue-500/10 text-blue-400 shadow-[0_0_14px_3px_rgba(255,255,255,0.08)]"
+                    : "text-gray-400 hover:bg-[#27272a] hover:text-white hover:shadow-[0_0_14px_3px_rgba(255,255,255,0.10)]"
                 }`}
               >
                 <Icon className="h-5 w-5" />
@@ -96,7 +96,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-3 text-gray-400 hover:text-white hover:bg-[#27272a]"
+                className="w-full justify-start gap-3 text-gray-400 hover:text-white hover:bg-[#27272a] hover:shadow-[0_0_14px_3px_rgba(255,255,255,0.10)] transition-all duration-200"
               >
                 <User className="h-5 w-5" />
                 <div className="flex-1 text-left">

@@ -58,14 +58,14 @@ export default function Configuration() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0b]">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0b] p-6 space-y-6">
+    <div className="container mx-auto p-6 space-y-6 max-w-10xl">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-white">Configuration</h1>

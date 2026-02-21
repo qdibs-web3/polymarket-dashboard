@@ -3,6 +3,7 @@ import { Crown, Star, Zap } from "lucide-react";
 
 interface SubscriptionBadgeProps {
   tier: number;
+  expiresAt: Date;
   className?: string;
 }
 
@@ -24,7 +25,7 @@ const TIER_CONFIG = {
   },
 };
 
-export function SubscriptionBadge({ tier, className }: SubscriptionBadgeProps) {
+export function SubscriptionBadge({ tier, expiresAt, className }: SubscriptionBadgeProps) {
   const config = TIER_CONFIG[tier as keyof typeof TIER_CONFIG];
 
   if (!config) {
