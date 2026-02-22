@@ -11,26 +11,32 @@ async function main() {
   const botWalletAddress = process.env.BOT_HOT_WALLET_ADDRESS;
   const treasuryAddress = process.env.TREASURY_ADDRESS || deployer.address;
   const usdcAddress = process.env.USDC_ADDRESS;
-  
-  if (!botWalletAddress) {
-    throw new Error("BOT_HOT_WALLET_ADDRESS not set in .env");
-  }
-  
+  const existingProxyAddress = process.env.BOT_PROXY_ADDRESS;
+
   if (!usdcAddress) {
-    throw new Error("USDC_ADDRESS not set in .env (use Amoy USDC address)");
+    throw new Error("USDC_ADDRESS not set in .env");
   }
-  
-  console.log("Bot wallet address:", botWalletAddress);
+
   console.log("Treasury address:", treasuryAddress);
   console.log("USDC address:", usdcAddress);
-  
-  // Deploy PolymarketBotProxy
-  console.log("\n📦 Deploying PolymarketBotProxy...");
-  const PolymarketBotProxy = await hre.ethers.getContractFactory("PolymarketBotProxy");
-  const proxy = await PolymarketBotProxy.deploy(botWalletAddress);
-  await proxy.waitForDeployment();
-  const proxyAddress = await proxy.getAddress();
-  console.log("✅ PolymarketBotProxy deployed to:", proxyAddress);
+
+  // Deploy PolymarketBotProxy — skip if BOT_PROXY_ADDRESS is already set
+  let proxyAddress: string;
+  if (existingProxyAddress) {
+    proxyAddress = existingProxyAddress;
+    console.log("\n⏭️  Skipping PolymarketBotProxy deploy — using existing:", proxyAddress);
+  } else {
+    if (!botWalletAddress) {
+      throw new Error("BOT_HOT_WALLET_ADDRESS not set in .env (required when BOT_PROXY_ADDRESS is not set)");
+    }
+    console.log("Bot wallet address:", botWalletAddress);
+    console.log("\n📦 Deploying PolymarketBotProxy...");
+    const PolymarketBotProxy = await hre.ethers.getContractFactory("PolymarketBotProxy");
+    const proxy = await PolymarketBotProxy.deploy(botWalletAddress);
+    await proxy.waitForDeployment();
+    proxyAddress = await proxy.getAddress();
+    console.log("✅ PolymarketBotProxy deployed to:", proxyAddress);
+  }
   
   // Deploy SubscriptionManager
   console.log("\n📦 Deploying SubscriptionManager...");
@@ -71,14 +77,18 @@ async function main() {
   console.log("  PREMIUM: $" + hre.ethers.formatUnits(premiumPrice, 6) + " USDC/month");
   
   console.log("\n📊 Bot Proxy Tier Limits:");
-  const basicLimits = await proxy.getTierLimits(1);
-  console.log("  BASIC:   Max Trade:", hre.ethers.formatUnits(basicLimits[0], 6), "USDC | Daily:", hre.ethers.formatUnits(basicLimits[1], 6), "USDC");
-  
-  const proLimits = await proxy.getTierLimits(2);
-  console.log("  PRO:     Max Trade:", hre.ethers.formatUnits(proLimits[0], 6), "USDC | Daily:", hre.ethers.formatUnits(proLimits[1], 6), "USDC");
-  
-  const premiumLimits = await proxy.getTierLimits(3);
-  console.log("  PREMIUM: Max Trade:", hre.ethers.formatUnits(premiumLimits[0], 6), "USDC | Daily:", hre.ethers.formatUnits(premiumLimits[1], 6), "USDC");
+  try {
+    const PolymarketBotProxyArtifact = await hre.ethers.getContractFactory("PolymarketBotProxy");
+    const proxyContract = PolymarketBotProxyArtifact.attach(proxyAddress);
+    const basicLimits = await proxyContract.getTierLimits(1);
+    console.log("  BASIC:   Max Trade:", hre.ethers.formatUnits(basicLimits[0], 6), "USDC | Daily:", hre.ethers.formatUnits(basicLimits[1], 6), "USDC");
+    const proLimits = await proxyContract.getTierLimits(2);
+    console.log("  PRO:     Max Trade:", hre.ethers.formatUnits(proLimits[0], 6), "USDC | Daily:", hre.ethers.formatUnits(proLimits[1], 6), "USDC");
+    const premiumLimits = await proxyContract.getTierLimits(3);
+    console.log("  PREMIUM: Max Trade:", hre.ethers.formatUnits(premiumLimits[0], 6), "USDC | Daily:", hre.ethers.formatUnits(premiumLimits[1], 6), "USDC");
+  } catch (e) {
+    console.log("  (Could not read tier limits from proxy)");
+  }
   
   console.log("\n🔍 Verify on PolygonScan (Amoy):");
   console.log("─".repeat(60));

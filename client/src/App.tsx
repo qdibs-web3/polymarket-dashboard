@@ -8,10 +8,10 @@ import Trades from "./pages/Trades";
 import Positions from "./pages/Positions";
 import Configuration from "./pages/Configuration";
 import DashboardLayout from "./components/DashboardLayout";
+import { SubscriptionGuard } from "./components/SubscriptionGuard";
 import NotFound from "./pages/NotFound";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import Logs from "./pages/Logs";
 import "./index.css";
 
 function Router() {
@@ -23,7 +23,7 @@ function Router() {
       {/* Subscription page (for non-subscribers) */}
       <Route path="/subscribe" component={Subscribe} />
 
-      {/* Protected routes with DashboardLayout */}
+      {/* Dashboard — accessible to all connected wallets */}
       <Route path="/">
         <DashboardLayout>
           <Dashboard />
@@ -36,27 +36,28 @@ function Router() {
         </DashboardLayout>
       </Route>
 
+      {/* Subscription-gated routes */}
       <Route path="/trades">
         <DashboardLayout>
-          <Trades />
+          <SubscriptionGuard>
+            <Trades />
+          </SubscriptionGuard>
         </DashboardLayout>
       </Route>
 
       <Route path="/positions">
         <DashboardLayout>
-          <Positions />
-        </DashboardLayout>
-      </Route>
-
-      <Route path="/logs">
-        <DashboardLayout>
-          <Logs />
+          <SubscriptionGuard>
+            <Positions />
+          </SubscriptionGuard>
         </DashboardLayout>
       </Route>
 
       <Route path="/config">
         <DashboardLayout>
-          <Configuration />
+          <SubscriptionGuard>
+            <Configuration />
+          </SubscriptionGuard>
         </DashboardLayout>
       </Route>
 

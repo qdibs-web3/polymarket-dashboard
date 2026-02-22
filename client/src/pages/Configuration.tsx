@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,18 +14,28 @@ export default function Configuration() {
   const { isConnected } = useAccount();
   const [isSaving, setIsSaving] = useState(false);
 
-  // Fetch current config
+  // Fetch current config — staleTime prevents re-fetching on every mount
   const { data: config, isLoading, refetch } = trpc.config.get.useQuery(
     undefined,
-    { enabled: isConnected }
+    {
+      enabled: isConnected,
+      staleTime: 30_000,   // treat data as fresh for 30s
+      retry: 1,            // only retry once on failure
+    }
   );
 
-  // Form state
-  const [maxPositionSize, setMaxPositionSize] = useState(config?.max_position_size || "100");
-  const [dailySpendLimit, setDailySpendLimit] = useState(config?.daily_spend_limit || "1000");
-  const [edgeThreshold, setEdgeThreshold] = useState(
-    parseFloat(config?.btc15m_edge_threshold || "0.02") * 100
-  );
+  // Form state — initialised to defaults, updated when config loads
+  const [maxPositionSize, setMaxPositionSize] = useState("100");
+  const [dailySpendLimit, setDailySpendLimit] = useState("1000");
+  const [edgeThreshold, setEdgeThreshold] = useState(2);
+
+  // Populate form once config arrives from server
+  useEffect(() => {
+    if (!config) return;
+    setMaxPositionSize(config.max_position_size ?? "100");
+    setDailySpendLimit(config.daily_spend_limit ?? "1000");
+    setEdgeThreshold(parseFloat(config.btc15m_edge_threshold ?? "0.02") * 100);
+  }, [config]);
 
   // Update mutation
   const updateMutation = trpc.config.update.useMutation({
@@ -186,7 +196,7 @@ export default function Configuration() {
         <Button
           onClick={handleSave}
           disabled={isSaving}
-          className="flex-1"
+          className="flex-1 bg-blue-600 hover:bg-blue-500 hover:shadow-[0_0_18px_4px_rgba(59,130,246,0.55)] transition-all duration-200 disabled:opacity-40"
         >
           {isSaving ? (
             <>
@@ -204,6 +214,7 @@ export default function Configuration() {
           onClick={handleReset}
           variant="outline"
           disabled={isSaving}
+          className="border-[#3f3f46] text-gray-300 hover:border-blue-500/60 hover:text-blue-300 hover:bg-blue-500/10 hover:shadow-[0_0_12px_2px_rgba(59,130,246,0.30)] transition-all duration-200"
         >
           Reset
         </Button>

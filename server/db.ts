@@ -128,6 +128,31 @@ export async function updateBotConfig(userId: number, data: Partial<BotConfig>) 
     .where(eq(botConfig.userId, userId));
 }
 
+
+/**
+ * Create a bot log entry
+ */
+export async function createBotLog(data: {
+  userId: number;
+  level: "info" | "warning" | "error" | "success";
+  message: string;
+  context?: string;
+  timestamp: Date;
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  await db.insert(botLogs).values({
+    userId: data.userId,
+    level: data.level,
+    message: data.message,
+    context: data.context,
+    timestamp: data.timestamp,
+  });
+}
+
+
+
 // ============================================
 // Trade Operations
 // ============================================

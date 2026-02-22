@@ -74,7 +74,7 @@ export default function Subscribe() {
   const [selectedTier, setSelectedTier] = useState<number | null>(null);
   const [showPaymentFlow, setShowPaymentFlow] = useState(false);
   
-  const { isSubscribed, isLoading } = useSubscription(address);
+  const { isSubscribed, isLoading, refetch } = useSubscription(address);
 
   // Redirect if already subscribed
   useEffect(() => {
@@ -85,15 +85,21 @@ export default function Subscribe() {
 
   const handleSubscribe = (tierId: number) => {
     if (!isConnected) {
-      // Show connect wallet message
       return;
     }
     setSelectedTier(tierId);
     setShowPaymentFlow(true);
   };
 
-  const handlePaymentComplete = () => {
+  const handlePaymentComplete = async () => {
     setShowPaymentFlow(false);
+    // Force-refetch subscription status so the dashboard sees the new subscription
+    // immediately instead of waiting for the 30-second polling interval
+    try {
+      await refetch();
+    } catch {
+      // ignore — redirect anyway
+    }
     setLocation("/dashboard");
   };
 
@@ -142,7 +148,7 @@ export default function Subscribe() {
           {tiers.map((tier) => (
             <Card
               key={tier.id}
-              className={`relative bg-[#18181b] border-[#27272a] hover:border-blue-500/50 transition-all duration-300 flex flex-col ${
+              className={`relative bg-[#18181b] border-[#27272a] hover:border-blue-500/60 hover:shadow-[0_0_24px_4px_rgba(59,130,246,0.20)] transition-all duration-300 flex flex-col ${
                 tier.popular ? "ring-2 ring-blue-500 scale-105" : ""
               }`}
             >
@@ -192,7 +198,11 @@ export default function Subscribe() {
 
               <CardFooter className="mt-auto pt-4">
                 <Button
-                  className="w-full"
+                  className={`w-full transition-all duration-200 ${
+                    tier.popular
+                      ? "bg-blue-600 hover:bg-blue-500 hover:shadow-[0_0_20px_4px_rgba(59,130,246,0.60)]"
+                      : "border-[#3f3f46] text-gray-300 hover:border-blue-500/60 hover:text-blue-300 hover:bg-blue-500/10 hover:shadow-[0_0_14px_3px_rgba(59,130,246,0.35)]"
+                  }`}
                   variant={tier.popular ? "default" : "outline"}
                   onClick={() => handleSubscribe(tier.id)}
                 >

@@ -8,6 +8,7 @@ import { z } from "zod";
 import * as db from "../db";
 import { BotManager } from "../services/botManager";
 import { TRPCError } from "@trpc/server";
+import { ENV } from "../_core/env";
 
 export const botRouter = router({
   /**
@@ -56,17 +57,20 @@ export const botRouter = router({
       });
     }
 
-    if (!config.proxy_contract_address) {
+    // Fall back to the env var if proxy_contract_address is not set in DB
+    const proxyAddress = config.proxy_contract_address || ENV.proxyContractAddress;
+    if (!proxyAddress) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "Smart contract not deployed. Please complete Phase 1 setup."
+        message: "Smart contract not deployed. Please set PROXY_CONTRACT_ADDRESS in your .env file."
       });
     }
 
-    // Set config to active
+    // Set config to active, and persist the proxy address if it was missing
     await db.upsertBotConfig({
       ...config,
       isActive: true,
+      proxy_contract_address: proxyAddress,
     });
 
     // Start bot via bot manager

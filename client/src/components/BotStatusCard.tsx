@@ -109,7 +109,7 @@ export function BotStatusCard() {
           <Button
             onClick={handleStart}
             disabled={isActive || isLoading}
-            className="flex-1"
+            className="flex-1 bg-blue-600 hover:bg-blue-500 hover:shadow-[0_0_18px_4px_rgba(59,130,246,0.55)] transition-all duration-200 disabled:opacity-40 disabled:shadow-none"
             size="lg"
           >
             <Play className="mr-2 h-4 w-4" />
@@ -119,7 +119,7 @@ export function BotStatusCard() {
             onClick={handleStop}
             disabled={!isActive || isLoading}
             variant="destructive"
-            className="flex-1"
+            className="flex-1 hover:shadow-[0_0_18px_4px_rgba(239,68,68,0.50)] transition-all duration-200 disabled:opacity-40 disabled:shadow-none"
             size="lg"
           >
             <Square className="mr-2 h-4 w-4" />
