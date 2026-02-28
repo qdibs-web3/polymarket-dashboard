@@ -356,6 +356,21 @@ export async function getTodayTradeCount(userId: number): Promise<number> {
 }
 
 /**
+ * Get total USDC spent today (sum of entryValue for today's open/closed trades)
+ */
+export async function getTodaySpend(userId: number): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const result = await db
+    .select()
+    .from(trades)
+    .where(and(eq(trades.userId, userId), gte(trades.entryTime, today)));
+  return result.reduce((sum, t) => sum + parseFloat(String(t.entryValue ?? '0')), 0);
+}
+
+/**
  * Get all active bot configs
  */
 export async function getAllActiveBotConfigs(): Promise<any[]> {
@@ -406,6 +421,7 @@ export async function createTrade(data: {
   entryTime: Date;
   status: 'open' | 'closed' | 'cancelled';
   txHash?: string;
+  orderId?: string;
 }): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error('Database not available');

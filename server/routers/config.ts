@@ -38,8 +38,7 @@ export const configRouter = router({
         // Bot operation
         runIntervalSeconds: z.number().optional(),
         
-        // Smart contract settings
-        proxy_contract_address: z.string().optional(),
+        // Note: proxy_contract_address removed — PolymarketBotProxy no longer used
       })
     )
     .mutation(async ({ ctx, input }) => {

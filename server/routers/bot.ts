@@ -1,6 +1,8 @@
 /**
- * Updated Bot Router for Phase 5
- * Replace the contents of server/routers/bot.ts with this
+ * Bot Router
+ *
+ * Tier limits enforced app-side via server/services/tierLimits.ts.
+ * PolymarketBotProxy contract removed — trades go directly to CLOB API.
  */
 
 import { router, protectedProcedure } from "../_core/trpc";
@@ -8,8 +10,6 @@ import { z } from "zod";
 import * as db from "../db";
 import { BotManager } from "../services/botManager";
 import { TRPCError } from "@trpc/server";
-import { ENV } from "../_core/env";
-
 export const botRouter = router({
   /**
    * Get bot status
@@ -56,22 +56,15 @@ export const botRouter = router({
         message: "Wallet address not configured. Please connect your wallet."
       });
     }
-
-    // Fall back to the env var if proxy_contract_address is not set in DB
-    const proxyAddress = config.proxy_contract_address || ENV.proxyContractAddress;
-    if (!proxyAddress) {
+    // Check subscription tier
+    if (!user.subscriptionTier || user.subscriptionTier === "none") {
       throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Smart contract not deployed. Please set PROXY_CONTRACT_ADDRESS in your .env file."
+        code: "FORBIDDEN",
+        message: "Active subscription required to start the bot. Please subscribe first.",
       });
     }
-
-    // Set config to active, and persist the proxy address if it was missing
-    await db.upsertBotConfig({
-      ...config,
-      isActive: true,
-      proxy_contract_address: proxyAddress,
-    });
+    // Activate config (no proxy contract address needed)
+    await db.upsertBotConfig({ ...config, isActive: true });
 
     // Start bot via bot manager
     const botManager = BotManager.getInstance();
@@ -80,7 +73,7 @@ export const botRouter = router({
     await db.createBotLog({
       userId: user.id,
       level: "info",
-      message: "Bot started by user",
+      message: `Bot started by user (tier: ${user.subscriptionTier})`,
       timestamp: new Date(),
     });
 
@@ -178,12 +171,25 @@ export const botRouter = router({
     const openTrades = await db.getOpenTrades(user.id);
 
     return {
-      botRunning: botStatus.running,
-      taEngineReady: botStatus.taEngineReady,
+      botRunning:      botStatus.running,
+      inFastMode:      (botStatus as any).inFastMode ?? false,
+      secsToClose:     (botStatus as any).secsToClose ?? null,
+      taEngineReady:   botStatus.taEngineReady,
       todayTrades,
       todayPnL,
-      openPositions: openTrades.length,
+      openPositions:   openTrades.length,
       indicatorValues: botStatus.indicatorValues,
     };
+  }),
+
+  /**
+   * Get current tier limits for the logged-in user.
+   * Replaces the on-chain proxy contract tier check.
+   */
+  getTierLimits: protectedProcedure.query(async ({ ctx }) => {
+    const user = await db.getUserByWalletAddress(ctx.user.wallet_address);
+    if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+    const { getTierLimits } = await import("../services/tierLimits");
+    return getTierLimits(user.subscriptionTier ?? "none");
   }),
 });

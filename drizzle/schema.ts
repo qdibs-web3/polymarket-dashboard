@@ -131,8 +131,10 @@ export const trades = mysqlTable("trades", {
   entryTime: timestamp("entryTime").notNull(),
   exitTime: timestamp("exitTime"),
 
-  // Transaction hash - ADD THIS LINE
+  // Transaction hash
   txHash: varchar("txHash", { length: 66 }),
+  // CLOB order ID returned by Polymarket on order placement
+  orderId: varchar("orderId", { length: 128 }),
   
   // Additional data
   metadata: json("metadata"),

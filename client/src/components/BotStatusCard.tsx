@@ -42,13 +42,13 @@ export function BotStatusCard() {
     },
   });
 
-  // Fetch logs from backend
+  // Fetch logs from backend — poll every 5s for near-real-time display
   const { data: backendLogs } = trpc.bot.getLogs.useQuery(
-    { limit: 50 },
-    { refetchInterval: 10000 }
+    { limit: 100 },
+    { refetchInterval: 5000 }
   );
 
-  // Sync backend logs with local logs
+  // Sync backend logs with local logs (backend is source of truth)
   useEffect(() => {
     if (backendLogs && backendLogs.length > 0) {
       const formattedLogs: BotLog[] = backendLogs.map((log: any) => ({
@@ -57,6 +57,8 @@ export function BotStatusCard() {
         timestamp: new Date(log.timestamp),
         message: log.message,
       }));
+      // Sort newest first so latest log appears at top
+      formattedLogs.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
       setLogs(formattedLogs);
     }
   }, [backendLogs]);
@@ -178,7 +180,7 @@ export function BotStatusCard() {
               </Button>
             )}
           </div>
-          <ScrollArea className="h-[200px] w-full rounded-md border p-4">
+          <ScrollArea className="h-[400px] w-full rounded-md border p-4">
             {logs.length === 0 ? (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                 No activity yet. Start the bot to see logs.

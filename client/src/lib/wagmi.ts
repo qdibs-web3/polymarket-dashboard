@@ -20,11 +20,12 @@ const polygonTransports = fallback([
   ...(alchemyKey ? [http(`https://polygon-mainnet.g.alchemy.com/v2/${alchemyKey}`)] : []),
   ...(infuraKey  ? [http(`https://polygon-mainnet.infura.io/v3/${infuraKey}`)]       : []),
 
-  // Free public RPCs — all confirmed working
-  http('https://polygon-bor-rpc.publicnode.com'),   // PublicNode — fast, no auth
-  http('https://rpc.ankr.com/polygon'),              // Ankr — reliable
-  http('https://1rpc.io/matic'),                     // 1RPC — privacy-focused
-  http('https://polygon.meowrpc.com'),               // MeowRPC — community
+  // Free public RPCs — CORS-friendly (browser-safe)
+  // NOTE: 1rpc.io and meowrpc.com block browser CORS requests — do not add them back
+  http('https://polygon-bor-rpc.publicnode.com'),   // PublicNode — fast, CORS-open
+  http('https://rpc.ankr.com/polygon'),              // Ankr — reliable, CORS-open
+  http('https://polygon.llamarpc.com'),              // LlamaRPC — CORS-open
+  http('https://endpoints.omniatech.io/v1/matic/mainnet/public'), // Omnia — CORS-open
 ]);
 
 const polygonAmoyTransports = fallback([

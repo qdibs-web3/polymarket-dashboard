@@ -8,8 +8,11 @@ export const ENV = {
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
-  // Smart contract addresses (Polygon Mainnet)
-  proxyContractAddress: process.env.PROXY_CONTRACT_ADDRESS ?? "0xA5B9d3E2435ad973BF2020585562811D6d4f8747",
+  // ── Subscription contract (SubscriptionManager on Polygon Mainnet)
   subscriptionContractAddress: process.env.SUBSCRIPTION_CONTRACT_ADDRESS ?? "0xE32b25a366ab56357c014A44bf1Dd1140761bEdc",
   polygonRpcUrl: process.env.POLYGON_RPC_URL ?? "https://polygon-bor-rpc.publicnode.com",
+
+  // ── Bot signing key.The server-side private key used to sign EIP-712 CLOB orders.
+  // This wallet must hold USDC on Polygon and have approved the CTF Exchange.
+  botPrivateKey: process.env.BOT_PRIVATE_KEY ?? "",
 };

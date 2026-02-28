@@ -2,12 +2,15 @@ import { useBalance } from "wagmi";
 import { polygon } from "wagmi/chains";
 
 /**
- * Native USDC on Polygon Mainnet (not bridged USDC.e).
- * MetaMask shows this as "USD Coin" with address 0x3c499c...
+ * Bridged USDC.e on Polygon Mainnet — the collateral token used by Polymarket.
+ * MetaMask shows this as "USD Coin (PoS)" with address 0x2791...
+ *
+ * NOTE: Polymarket's CTF Exchange and NegRisk Adapter settle in USDC.e,
+ * NOT in native USDC (0x3c499c...). Always display and use USDC.e balance.
  *
  * VITE_USDC_ADDRESS can override this for testnet deployments.
  */
-const POLYGON_MAINNET_USDC = "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359" as const;
+const POLYGON_MAINNET_USDC = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174" as const;
 
 const USDC_TOKEN_ADDRESS = (
   (import.meta.env.VITE_USDC_ADDRESS as string | undefined) || POLYGON_MAINNET_USDC
